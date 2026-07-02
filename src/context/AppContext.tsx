@@ -36,6 +36,9 @@ const INITIAL_BORROW_RECORDS: BorrowRecord[] = [
 interface AppContextType {
   exchangeRate: number;
   setExchangeRate: (rate: number) => void;
+  rateUpdatedAt: string | null;
+  rateLoading: boolean;
+  fetchLiveRate: () => Promise<void>;
   accounts: BankAccount[];
   expenses: Expense[];
   goals: SavingsGoal[];
@@ -75,13 +78,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [categories, setCategories] = useState<BudgetCategory[]>(INITIAL_CATEGORIES);
   const [quickAmountToFill, setQuickAmountToFill] = useState<number>(0);
   const [quickCurrencyToFill, setQuickCurrencyToFill] = useState<Currency>('KRW');
+  const [rateUpdatedAt, setRateUpdatedAt] = useState<string | null>(null);
+  const [rateLoading, setRateLoading] = useState(false);
+
+  const fetchLiveRate = async () => {
+    if (rateLoading) return;
+    setRateLoading(true);
+    try {
+      const res  = await fetch('https://open.er-api.com/v6/latest/KRW');
+      const data = await res.json();
+      if (data.result === 'success' && data.rates?.MYR) {
+        const live = parseFloat((data.rates.MYR * 1000).toFixed(4));
+        setExchangeRateState(live);
+        const ts = new Date().toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit', hour12: true });
+        setRateUpdatedAt(ts);
+        await AsyncStorage.setItem('saku_rate_updated', ts);
+      }
+    } catch {
+      // network unavailable — keep cached rate
+    } finally {
+      setRateLoading(false);
+    }
+  };
 
   // Load all data from AsyncStorage on mount
   useEffect(() => {
     const loadData = async () => {
       try {
         const CAT_VERSION = 'v3';
-        const [rate, savedAccounts, savedExpenses, savedGoals, savedRecords, savedCategories, catVersion] = await Promise.all([
+        const [rate, savedAccounts, savedExpenses, savedGoals, savedRecords, savedCategories, catVersion, savedUpdatedAt] = await Promise.all([
           AsyncStorage.getItem('saku_rate'),
           AsyncStorage.getItem('saku_accounts'),
           AsyncStorage.getItem('saku_expenses'),
@@ -89,8 +114,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           AsyncStorage.getItem('saku_records'),
           AsyncStorage.getItem('saku_categories'),
           AsyncStorage.getItem('saku_cat_version'),
+          AsyncStorage.getItem('saku_rate_updated'),
         ]);
         if (rate) setExchangeRateState(parseFloat(rate));
+        if (savedUpdatedAt) setRateUpdatedAt(savedUpdatedAt);
         if (savedAccounts) setAccounts(JSON.parse(savedAccounts));
         if (savedExpenses) setExpenses(JSON.parse(savedExpenses));
         if (savedGoals) setGoals(JSON.parse(savedGoals));
@@ -112,6 +139,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {
         console.error('Failed to load data', e);
       }
+      // Fetch live rate after local data is ready
+      fetchLiveRate();
     };
     loadData();
   }, []);
@@ -315,6 +344,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider value={{
       exchangeRate, setExchangeRate,
+      rateUpdatedAt, rateLoading, fetchLiveRate,
       accounts, expenses, goals, records, categories,
       quickAmountToFill, quickCurrencyToFill,
       setQuickAmountToFill, setQuickCurrencyToFill,

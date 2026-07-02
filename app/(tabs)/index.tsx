@@ -54,10 +54,6 @@ export default function VaultTab() {
             <CalendarDays size={18} color="#22C55E" />
           </TouchableOpacity>
         </View>
-        <View className="flex-row items-center gap-2 mt-2 bg-stone-50 border border-stone-200 px-3 py-1.5 rounded-2xl self-start">
-          <Text className="text-[10px] font-bold text-stone-500 uppercase">Rate:</Text>
-          <Text className="font-bold text-xs text-stone-700">₩1,000 ≈ RM {exchangeRate.toFixed(3)}</Text>
-        </View>
       </View>
 
       <ScrollView className="flex-1 px-4 pt-4" showsVerticalScrollIndicator={false}>
@@ -126,7 +122,6 @@ export default function VaultTab() {
         <View className="mt-4 mb-4">
           <CurrencyConverter
             exchangeRate={exchangeRate}
-            onExchangeRateChange={setExchangeRate}
             onUseCalculatedAmount={(amt, curr) => {
               handleUseCalculatedAmount(amt, curr);
               setQuickAmountToFill(amt);

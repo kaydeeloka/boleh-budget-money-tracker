@@ -1,20 +1,18 @@
 ﻿import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, ScrollView } from 'react-native';
-import { ArrowRightLeft, RefreshCw, Calculator, Sparkles } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, TextInput } from 'react-native';
+import { ArrowRightLeft, RefreshCw, Calculator } from 'lucide-react-native';
+import { useAppContext } from '../context/AppContext';
 
 interface CurrencyConverterProps {
   exchangeRate: number;
-  onExchangeRateChange: (newRate: number) => void;
   onUseCalculatedAmount?: (amount: number, currency: 'KRW' | 'MYR') => void;
 }
 
-export default function CurrencyConverter({ exchangeRate, onExchangeRateChange, onUseCalculatedAmount }: CurrencyConverterProps) {
+export default function CurrencyConverter({ exchangeRate, onUseCalculatedAmount }: CurrencyConverterProps) {
+  const { rateUpdatedAt, rateLoading, fetchLiveRate } = useAppContext();
   const [krwVal, setKrwVal] = useState<string>('10000');
   const [myrVal, setMyrVal] = useState<string>((10 * exchangeRate).toFixed(2));
   const [activeDirection, setActiveDirection] = useState<'krwToMyr' | 'myrToKrw'>('krwToMyr');
-  const [tempRate, setTempRate] = useState<string>(exchangeRate.toString());
-  const [isEditingRate, setIsEditingRate] = useState(false);
-
   const krwPresets = [
     { label: 'Bus/Subway', value: 1500 },
     { label: 'Mega Coffee', value: 2000 },
@@ -45,21 +43,6 @@ export default function CurrencyConverter({ exchangeRate, onExchangeRateChange, 
     else setKrwVal('');
   };
 
-  const applyRateUpdate = () => {
-    const rateNum = parseFloat(tempRate);
-    if (!isNaN(rateNum) && rateNum > 0) {
-      onExchangeRateChange(rateNum);
-      setIsEditingRate(false);
-      if (activeDirection === 'krwToMyr') {
-        const krw = parseFloat(krwVal);
-        if (!isNaN(krw)) setMyrVal(((krw / 1000) * rateNum).toFixed(2));
-      } else {
-        const myr = parseFloat(myrVal);
-        if (!isNaN(myr)) setKrwVal((myr * (1000 / rateNum)).toFixed(0));
-      }
-    }
-  };
-
   const handlePresetClick = (val: number, currency: 'KRW' | 'MYR') => {
     if (currency === 'KRW') {
       setActiveDirection('krwToMyr');
@@ -84,37 +67,31 @@ export default function CurrencyConverter({ exchangeRate, onExchangeRateChange, 
             <Text className="text-xs text-stone-400">Easy math for study abroad expenses</Text>
           </View>
         </View>
-        <View className="flex-row items-center gap-1 bg-stone-50 px-2.5 py-1 rounded-full border border-stone-200">
-          <Sparkles size={12} color="#d97706" />
-          <Text className="text-[11px] text-stone-600">Persisted Rates</Text>
-        </View>
       </View>
 
       {/* Rate Editor */}
       <View className="bg-stone-50 rounded-2xl p-3 mb-5 border border-stone-200">
         <View className="flex-row items-center justify-between">
           <Text className="text-xs text-stone-500 font-medium">Standard Bank Rate:</Text>
-          {isEditingRate ? (
-            <View className="flex-row items-center gap-1">
-              <Text className="text-stone-600 text-xs">₩1,000 = RM</Text>
-              <TextInput
-                className="w-16 px-1.5 py-0.5 bg-white border border-stone-200 rounded font-bold text-stone-700 text-xs text-right"
-                keyboardType="numeric"
-                value={tempRate}
-                onChangeText={setTempRate}
-              />
-              <TouchableOpacity onPress={applyRateUpdate} className="bg-green-500 px-2.5 py-0.5 rounded">
-                <Text className="text-white text-[10px] font-medium">Save</Text>
-              </TouchableOpacity>
+          <View className="flex-row items-center gap-2">
+            <View className="items-end gap-0.5">
+              {rateUpdatedAt ? (
+                <Text className="text-[9px] text-stone-400">{rateUpdatedAt}</Text>
+              ) : null}
+              <View className="flex-row items-center gap-1.5">
+                <View className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                <Text className="font-bold text-stone-700 text-xs">₩1,000 ≈ RM {exchangeRate.toFixed(3)}</Text>
+              </View>
+              <Text className="text-[9px] text-stone-400 font-medium">Source: ExchangeRate-API</Text>
             </View>
-          ) : (
-            <View className="flex-row items-center gap-1.5">
-              <Text className="font-bold text-stone-700 text-xs bg-white px-2 py-0.5 rounded border border-stone-200">₩1,000 ≈ RM {exchangeRate.toFixed(3)}</Text>
-              <TouchableOpacity onPress={() => { setTempRate(exchangeRate.toString()); setIsEditingRate(true); }}>
-                <Text className="text-green-500 text-[11px] font-semibold">Change</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+            <TouchableOpacity
+              onPress={fetchLiveRate}
+              disabled={rateLoading}
+              className="w-7 h-7 rounded-xl bg-stone-100 border border-stone-200 items-center justify-center"
+            >
+              <RefreshCw size={13} color={rateLoading ? '#d6d3d1' : '#22c55e'} />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -128,6 +105,7 @@ export default function CurrencyConverter({ exchangeRate, onExchangeRateChange, 
           <Text className="text-2xl font-bold text-stone-400">₩</Text>
           <TextInput
             className="flex-1 text-2xl font-bold text-stone-800 p-0"
+            style={{ minWidth: 0 }}
             keyboardType="numeric"
             placeholder="0"
             value={krwVal}
@@ -153,6 +131,7 @@ export default function CurrencyConverter({ exchangeRate, onExchangeRateChange, 
           <Text className="text-2xl font-bold text-stone-400">RM</Text>
           <TextInput
             className="flex-1 text-2xl font-bold text-stone-800 p-0"
+            style={{ minWidth: 0 }}
             keyboardType="numeric"
             placeholder="0.00"
             value={myrVal}
