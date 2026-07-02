@@ -93,7 +93,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (savedExpenses) setExpenses(JSON.parse(savedExpenses));
         if (savedGoals) setGoals(JSON.parse(savedGoals));
         if (savedRecords) setRecords(JSON.parse(savedRecords));
-        if (savedCategories) setCategories(JSON.parse(savedCategories));
+        if (savedCategories) {
+          const saved: BudgetCategory[] = JSON.parse(savedCategories);
+          // Always keep all initial categories, add any custom ones on top
+          const customOnly = saved.filter(s => s.isCustom);
+          setCategories([...INITIAL_CATEGORIES, ...customOnly]);
+        }
       } catch (e) {
         console.error('Failed to load data', e);
       }

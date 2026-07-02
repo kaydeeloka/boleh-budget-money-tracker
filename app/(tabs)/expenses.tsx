@@ -54,15 +54,12 @@ export default function ExpensesScreen() {
   const [filterAccount, setFilterAccount] = useState('all');
 
   React.useEffect(() => {
-    const profileAccounts = accounts.filter(a => a.currency === activeProfile);
-    if (profileAccounts.length > 0) {
-      const currentInProfile = profileAccounts.find(a => a.id === accountId);
-      if (!currentInProfile) {
-        setAccountId(profileAccounts[0].id);
-        setCurrency(profileAccounts[0].currency);
-      }
+    if (accounts.length > 0 && !accountId) {
+      setAccountId(accounts[0].id);
+      setCurrency(accounts[0].currency);
+      setActiveProfile(accounts[0].currency);
     }
-  }, [activeProfile, accounts]);
+  }, [accounts]);
 
   React.useEffect(() => {
     if (categories.length > 0 && !selectedCategory) setSelectedCategory(categories[0].name);
@@ -79,12 +76,14 @@ export default function ExpensesScreen() {
     }
   }, [quickAmountToFill, quickCurrencyToFill]);
 
-  React.useEffect(() => { setFilterAccount('all'); }, [activeProfile]);
 
   const handleAccountChange = (id: string) => {
     setAccountId(id);
     const acc = accounts.find(a => a.id === id);
-    if (acc) setCurrency(acc.currency);
+    if (acc) {
+      setCurrency(acc.currency);
+      setActiveProfile(acc.currency);
+    }
   };
 
   const handleCreateCategory = () => {
@@ -130,7 +129,7 @@ export default function ExpensesScreen() {
   };
 
   const filteredExpenses = expenses.filter(exp => {
-    if (exp.currency !== activeProfile) return false;
+    if (filterAccount === 'all' && exp.currency !== activeProfile) return false;
     const matchesSearch =
       exp.note.toLowerCase().includes(searchQuery.toLowerCase()) ||
       exp.category.toLowerCase().includes(searchQuery.toLowerCase());
@@ -223,8 +222,8 @@ export default function ExpensesScreen() {
                 </Text>
                 <View className="border border-stone-200 rounded-xl overflow-hidden bg-stone-50">
                   <Picker selectedValue={accountId} onValueChange={handleAccountChange} style={{ height: 44 }}>
-                    {accounts.filter(a => a.currency === activeProfile).map(a => (
-                      <Picker.Item key={a.id} label={a.bankName} value={a.id} />
+                    {accounts.map(a => (
+                      <Picker.Item key={a.id} label={`${a.bankName} (${a.currency === 'KRW' ? '₩' : 'RM'})`} value={a.id} />
                     ))}
                   </Picker>
                 </View>
@@ -407,9 +406,9 @@ export default function ExpensesScreen() {
                 <Text className="text-xs text-stone-600 font-medium">Filter:</Text>
               </View>
               <View className="border border-stone-200 rounded-lg bg-stone-50 overflow-hidden">
-                <Picker selectedValue={filterAccount} onValueChange={setFilterAccount} style={{ height: 32, width: 140 }}>
+                <Picker selectedValue={filterAccount} onValueChange={setFilterAccount} style={{ height: 32, width: 160 }}>
                   <Picker.Item label="All Accounts" value="all" />
-                  {accounts.filter(a => a.currency === activeProfile).map(a => (
+                  {accounts.map(a => (
                     <Picker.Item key={a.id} label={a.bankName} value={a.id} />
                   ))}
                 </Picker>
