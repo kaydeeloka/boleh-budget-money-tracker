@@ -12,6 +12,10 @@
   "exclude": [
     "src/App.tsx",
     "src/main.tsx",
+    "src/components/ExpensesTracker.tsx",
+    "src/components/SavingsGoals.tsx",
+    "src/components/DebtTracker.tsx",
+    "src/components/StatsAndCalendar.tsx",
     "node_modules",
     "dist"
   ],
