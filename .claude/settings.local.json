@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(node -e \"console.log\\(require\\('d:/Developer/boleh-budget/node_modules/expo/package.json'\\).version\\)\")",
+      "PowerShell(cd \"d:\\\\Developer\\\\boleh-budget\" ; $job = Start-Job { Set-Location \"d:\\\\Developer\\\\boleh-budget\"; npx expo start 2>&1 }; Start-Sleep -Seconds 12; $output = Receive-Job $job; Stop-Job $job; Remove-Job $job; $output | Select-Object -Last 30)"
+    ]
+  }
+}

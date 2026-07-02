@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Brand Palette requested by user */
+  --color-primary: #22C55E;
+  --color-secondary: #0F172A;
+  --color-expense: #EF4444;
+  --color-income: #16A34A;
+  --color-accent: #14B8A6;
+  --color-bg-earth: #faf8f5;
+
+  /* Remap default utility colors to map perfectly to this premium palette! */
+  --color-emerald-50: #F0FDF4;
+  --color-emerald-100: #DCFCE7;
+  --color-emerald-200: #BBF7D0;
+  --color-emerald-500: #22C55E; /* Primary green */
+  --color-emerald-600: #16A34A; /* Income green */
+  --color-emerald-700: #15803D;
+  --color-emerald-800: #22C55E; /* Map emerald-800 directly to primary green */
+  --color-emerald-850: #1B8E42;
+  --color-emerald-900: #15803D;
+  --color-emerald-950: #0F172A; /* Secondary Navy */
+
+  /* Map stone-900/slate text to the user's gorgeous dark Navy */
+  --color-stone-950: #020617;
+  --color-stone-900: #0F172A; /* Secondary Navy */
+  --color-stone-850: #1E293B;
+  --color-stone-800: #1E293B; /* Slate Navy */
+  --color-stone-700: #334155;
+  --color-stone-650: #475569;
+  --color-stone-600: #475569;
+  --color-stone-500: #64748B;
+  --color-stone-450: #94A3B8;
+  --color-stone-400: #94A3B8;
+  --color-stone-350: #CBD5E1;
+  --color-stone-300: #CBD5E1;
+  --color-stone-200: #E2E8F0;
+  --color-stone-150: #F1F5F9;
+  --color-stone-100: #F1F5F9;
+  --color-stone-50: #F8FAFC; /* Map stone-50 to cold white for nice contrast blocks */
+
+  /* Map red classes to Expense red */
+  --color-red-500: #EF4444;
+  --color-red-600: #EF4444;
+  --color-red-700: #DC2626;
+
+  /* Map green classes to Income green */
+  --color-green-500: #22C55E;
+  --color-green-600: #16A34A;
+  --color-green-700: #15803D;
+
+  /* Map teal classes to Accent teal */
+  --color-teal-500: #14B8A6;
+  --color-teal-600: #0D9488;
+}
