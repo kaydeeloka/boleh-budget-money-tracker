@@ -47,7 +47,10 @@ export default function VaultTab() {
               <Text className="font-bold text-stone-900 text-lg">Student Pocket Vault</Text>
             </View>
           </View>
-          <TouchableOpacity className="w-9 h-9 rounded-2xl bg-stone-100 border border-stone-200 items-center justify-center">
+          <TouchableOpacity
+            onPress={() => router.push('/calendar')}
+            className="w-9 h-9 rounded-2xl bg-stone-100 border border-stone-200 items-center justify-center"
+          >
             <CalendarDays size={18} color="#22C55E" />
           </TouchableOpacity>
         </View>
