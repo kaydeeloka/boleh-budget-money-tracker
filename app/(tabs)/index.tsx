@@ -93,15 +93,6 @@ export default function VaultTab() {
               Show in {netWorthCurrency === 'MYR' ? 'Korean Won' : 'Ringgit'}
             </Text>
           </TouchableOpacity>
-
-          {/* Pocket mood */}
-          <View className={`rounded-2xl p-4 border mt-4 ${pocketMood.color}`}>
-            <Text className="text-[10px] font-bold uppercase tracking-widest opacity-75">My Pocket Vibe</Text>
-            <Text className="font-semibold text-sm mt-1">{pocketMood.label}</Text>
-            <Text className="text-[11px] opacity-85 mt-2 leading-relaxed font-medium">
-              Expenses are logged in actual spend currencies and subtracted from respective cards instantly.
-            </Text>
-          </View>
         </View>
 
         {/* Scholarship Card */}

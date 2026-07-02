@@ -1,6 +1,6 @@
 import { Tabs, useRouter } from 'expo-router';
 import { View, TouchableOpacity } from 'react-native';
-import { CreditCard, Receipt, Plus, BarChart2 } from 'lucide-react-native';
+import { CreditCard, BarChart2, Plus, LayoutGrid } from 'lucide-react-native';
 import Svg, { Rect, Circle, Path } from 'react-native-svg';
 
 function TabungIcon({ size = 24, color = '#22C55E' }: { size?: number; color?: string }) {
@@ -101,8 +101,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="expenses"
         options={{
-          title: 'Costs',
-          tabBarIcon: ({ color, size }) => <Receipt size={size} color={color} />,
+          title: 'Stats',
+          tabBarIcon: ({ color, size }) => <BarChart2 size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -126,8 +126,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="stats"
         options={{
-          title: 'Stats',
-          tabBarIcon: ({ color, size }) => <BarChart2 size={size} color={color} />,
+          title: 'More',
+          tabBarIcon: ({ color, size }) => <LayoutGrid size={size} color={color} />,
         }}
       />
     </Tabs>

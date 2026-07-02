@@ -1,489 +1,352 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  Plus, Trash2, Search, Filter, ShoppingBag, BookOpen, Coffee,
-  HelpCircle, Sparkles, Smile, Plane, Utensils, Tag, Globe,
-  Compass, TrendingUp, TrendingDown, Receipt,
+  BarChart2, ChevronLeft, ChevronRight, Search, Filter,
+  Trash2, TrendingDown, TrendingUp, Globe, Compass,
+  ShoppingBag, BookOpen, Coffee, Smile, Plane, Utensils,
+  Tag, Sparkles, HelpCircle,
 } from 'lucide-react-native';
 import { useAppContext } from '../../src/context/AppContext';
-import { BudgetCategory, Currency } from '../../src/types';
+import { Currency } from '../../src/types';
 import Dropdown from '../../src/components/ui/Dropdown';
 
-const PRESET_ICONS = [
-  { name: 'Utensils', component: Utensils },
-  { name: 'Coffee', component: Coffee },
-  { name: 'ShoppingBag', component: ShoppingBag },
-  { name: 'BookOpen', component: BookOpen },
-  { name: 'Plane', component: Plane },
-  { name: 'Smile', component: Smile },
-  { name: 'Sparkles', component: Sparkles },
-  { name: 'Tag', component: Tag },
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-const PRESET_COLORS = [
-  { name: 'Rose', bg: 'bg-rose-500', iconColor: '#f43f5e' },
-  { name: 'Emerald', bg: 'bg-green-500', iconColor: '#10b981' },
-  { name: 'Blue', bg: 'bg-blue-500', iconColor: '#3b82f6' },
-  { name: 'Violet', bg: 'bg-violet-500', iconColor: '#8b5cf6' },
-  { name: 'Amber', bg: 'bg-amber-500', iconColor: '#f59e0b' },
-  { name: 'Cyan', bg: 'bg-cyan-500', iconColor: '#06b6d4' },
-];
+const ICON_MAP: Record<string, React.ComponentType<any>> = {
+  Utensils, Coffee, ShoppingBag, BookOpen, Plane, Smile, Sparkles, Tag,
+};
+const COLOR_MAP: Record<string, string> = {
+  Rose: '#f43f5e', Emerald: '#10b981', Blue: '#3b82f6',
+  Violet: '#8b5cf6', Amber: '#f59e0b', Cyan: '#06b6d4',
+};
+const COLOR_BG: Record<string, string> = {
+  Rose: '#fff1f2', Emerald: '#f0fdf4', Blue: '#eff6ff',
+  Violet: '#f5f3ff', Amber: '#fffbeb', Cyan: '#ecfeff',
+};
 
-export default function ExpensesScreen() {
-  const {
-    expenses, accounts, categories, exchangeRate,
-    handleAddExpense, handleDeleteExpense, handleAddCategory,
-    quickAmountToFill, quickCurrencyToFill, setQuickAmountToFill,
-  } = useAppContext();
+export default function StatsScreen() {
+  const { expenses, accounts, categories, exchangeRate, handleDeleteExpense } = useAppContext();
 
-  const [amount, setAmount] = useState('');
-  const [transactionType, setTransactionType] = useState<'income' | 'expense'>('expense');
-  const [currency, setCurrency] = useState<Currency>('KRW');
-  const [accountId, setAccountId] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [note, setNote] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [activeProfile, setActiveProfile] = useState<Currency>(() => accounts[0]?.currency || 'KRW');
-  const [showCategoryCreator, setShowCategoryCreator] = useState(false);
-  const [newCatName, setNewCatName] = useState('');
-  const [newCatIcon, setNewCatIcon] = useState('Utensils');
-  const [newCatColor, setNewCatColor] = useState('Rose');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterCategory, setFilterCategory] = useState('all');
-  const [filterAccount, setFilterAccount] = useState('all');
+  const now = new Date();
+  const [profile, setProfile] = useState<Currency>('KRW');
+  const [viewYear, setViewYear] = useState(now.getFullYear());
+  const [viewMonth, setViewMonth] = useState(now.getMonth());
+  const [search, setSearch] = useState('');
+  const [filterCat, setFilterCat] = useState('all');
+  const [filterAcc, setFilterAcc] = useState('all');
 
-  React.useEffect(() => {
-    if (accounts.length > 0 && !accountId) {
-      setAccountId(accounts[0].id);
-      setCurrency(accounts[0].currency);
-      setActiveProfile(accounts[0].currency);
-    }
-  }, [accounts]);
+  const sym = profile === 'KRW' ? '₩' : 'RM';
 
-  React.useEffect(() => {
-    if (categories.length > 0 && !selectedCategory) setSelectedCategory(categories[0].name);
-  }, [categories]);
-
-  React.useEffect(() => {
-    if (quickAmountToFill > 0) {
-      setAmount(quickAmountToFill.toString());
-      setCurrency(quickCurrencyToFill);
-      setActiveProfile(quickCurrencyToFill);
-      const matched = accounts.find(a => a.currency === quickCurrencyToFill);
-      if (matched) setAccountId(matched.id);
-      setQuickAmountToFill(0);
-    }
-  }, [quickAmountToFill, quickCurrencyToFill]);
-
-
-  const handleAccountChange = (id: string) => {
-    setAccountId(id);
-    const acc = accounts.find(a => a.id === id);
-    if (acc) {
-      setCurrency(acc.currency);
-      setActiveProfile(acc.currency);
-    }
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
+    else setViewMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
+    else setViewMonth(m => m + 1);
   };
 
-  const handleCreateCategory = () => {
-    if (!newCatName.trim()) return;
-    if (categories.some(c => c.name.toLowerCase() === newCatName.toLowerCase())) {
-      Alert.alert('Category exists', 'This category already exists!');
-      return;
-    }
-    const newCategory: BudgetCategory = {
-      id: `cat-${Date.now()}`, name: newCatName.trim(),
-      icon: newCatIcon, color: newCatColor, isCustom: true,
-    };
-    handleAddCategory(newCategory);
-    setSelectedCategory(newCategory.name);
-    setNewCatName('');
-    setShowCategoryCreator(false);
-  };
+  // Monthly items
+  const monthItems = useMemo(
+    () => expenses.filter(e =>
+      e.currency === profile &&
+      new Date(e.date).getFullYear() === viewYear &&
+      new Date(e.date).getMonth() === viewMonth,
+    ),
+    [expenses, profile, viewYear, viewMonth],
+  );
+  const monthIncome = monthItems.filter(e => e.type === 'income').reduce((s, e) => s + e.amount, 0);
+  const monthSpend  = monthItems.filter(e => e.type !== 'income').reduce((s, e) => s + e.amount, 0);
+  const monthNet    = monthIncome - monthSpend;
 
-  const handleSubmit = () => {
-    const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) return;
-    handleAddExpense({
-      date, amount: parsedAmount, currency, category: selectedCategory,
-      accountId,
-      note: note.trim() || `${selectedCategory} ${transactionType === 'income' ? 'income' : 'spending'}`,
-      type: transactionType,
-    });
-    setAmount('');
-    setNote('');
-  };
+  // All-time category sums for current profile
+  const catSums = useMemo(() => {
+    const sums: Record<string, number> = {};
+    expenses
+      .filter(e => e.currency === profile && e.type !== 'income')
+      .forEach(e => { sums[e.category] = (sums[e.category] || 0) + e.amount; });
+    return sums;
+  }, [expenses, profile]);
+  const totalSpend = Object.values(catSums).reduce((s, v) => s + v, 0);
 
-  const renderCategoryIcon = (categoryName: string, size = 16) => {
-    const cat = categories.find(c => c.name === categoryName);
-    const iconName = cat ? cat.icon : 'HelpCircle';
-    const preset = PRESET_ICONS.find(i => i.name === iconName) || { component: HelpCircle };
-    const IconComponent = preset.component;
-    const colorConfig = PRESET_COLORS.find(c => c.name === (cat?.color || 'Rose')) || PRESET_COLORS[0];
-    return (
-      <View className="p-2 rounded-xl bg-slate-50">
-        <IconComponent size={size} color={colorConfig.iconColor} />
-      </View>
-    );
-  };
+  // Filtered log
+  const logItems = useMemo(
+    () => expenses.filter(e => {
+      if (filterAcc === 'all' && e.currency !== profile) return false;
+      if (!e.note.toLowerCase().includes(search.toLowerCase()) &&
+          !e.category.toLowerCase().includes(search.toLowerCase())) return false;
+      if (filterCat !== 'all' && e.category !== filterCat) return false;
+      if (filterAcc !== 'all' && e.accountId !== filterAcc) return false;
+      return true;
+    }),
+    [expenses, profile, search, filterCat, filterAcc],
+  );
 
-  const filteredExpenses = expenses.filter(exp => {
-    if (filterAccount === 'all' && exp.currency !== activeProfile) return false;
-    const matchesSearch =
-      exp.note.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      exp.category.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = filterCategory === 'all' || exp.category === filterCategory;
-    const matchesAccount = filterAccount === 'all' || exp.accountId === filterAccount;
-    return matchesSearch && matchesCategory && matchesAccount;
-  });
+  function fmt(val: number) {
+    return profile === 'KRW'
+      ? Math.round(val).toLocaleString()
+      : val.toFixed(2);
+  }
 
-  const categorySpendingSums = expenses
-    .filter(exp => exp.currency === activeProfile)
-    .reduce((acc, exp) => {
-      acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
-      return acc;
-    }, {} as Record<string, number>);
+  function fmtOther(val: number) {
+    return profile === 'KRW'
+      ? ((val / 1000) * exchangeRate).toFixed(2)
+      : Math.round(val * (1000 / exchangeRate)).toLocaleString();
+  }
 
-  const totalSpending = Object.values(categorySpendingSums).reduce((sum, v) => sum + v, 0);
-  const sym = activeProfile === 'KRW' ? '₩' : 'RM';
+  function getCatIcon(catName: string) {
+    const cat = categories.find(c => c.name === catName);
+    const Icon = ICON_MAP[cat?.icon || ''] || HelpCircle;
+    const color = COLOR_MAP[cat?.color || ''] || '#a8a29e';
+    const bg    = COLOR_BG[cat?.color  || ''] || '#f5f5f4';
+    return { Icon, color, bg };
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-[#faf8f5]" edges={['top']}>
-      {/* Screen Header */}
+
+      {/* Header */}
       <View className="bg-white border-b border-stone-200 px-4 py-3">
         <View className="flex-row items-center gap-3">
-          <View className="w-9 h-9 rounded-2xl bg-red-500 items-center justify-center">
-            <Receipt size={18} color="white" />
+          <View className="w-9 h-9 rounded-2xl bg-violet-500 items-center justify-center">
+            <BarChart2 size={18} color="white" />
           </View>
           <View>
-            <Text className="text-[9px] font-extrabold tracking-widest text-stone-500 uppercase">Daily Costs</Text>
-            <Text className="font-bold text-stone-900 text-lg">Expense Tracker</Text>
+            <Text className="text-[9px] font-extrabold tracking-widest text-stone-500 uppercase">Spending Analytics</Text>
+            <Text className="font-bold text-stone-900 text-lg">Stats</Text>
           </View>
         </View>
       </View>
 
       <ScrollView className="flex-1 px-4 pt-4" showsVerticalScrollIndicator={false}>
-        <View className="gap-6 pb-8">
+        <View className="gap-4 pb-8">
 
-          {/* Profile Toggle */}
-          <View className="bg-stone-50 p-4 rounded-3xl border border-stone-200">
-            <Text className="text-[10px] font-extrabold tracking-wider text-stone-400 uppercase">Daily Expense Filter Profile</Text>
-            <Text className="font-bold text-stone-800 text-sm mt-0.5">
-              Viewing: {activeProfile === 'KRW' ? 'South Korea Accounts (₩ KRW)' : 'Malaysia Accounts (RM MYR)'}
-            </Text>
-            <View className="flex-row bg-stone-200/50 p-1 rounded-2xl border border-stone-200 mt-3">
+          {/* Currency profile toggle */}
+          <View className="bg-stone-50 rounded-2xl border border-stone-200 p-3">
+            <View className="flex-row bg-stone-200/50 p-1 rounded-xl border border-stone-200">
               <TouchableOpacity
-                onPress={() => setActiveProfile('KRW')}
-                className={`flex-1 flex-row items-center justify-center gap-1.5 px-4 py-2 rounded-xl ${activeProfile === 'KRW' ? 'bg-white shadow-sm' : ''}`}
+                onPress={() => setProfile('KRW')}
+                className={`flex-1 flex-row items-center justify-center gap-1.5 py-2 rounded-lg ${profile === 'KRW' ? 'bg-white' : ''}`}
               >
-                <Globe size={14} color="#2563eb" />
-                <Text className={`text-xs font-bold ${activeProfile === 'KRW' ? 'text-stone-900' : 'text-stone-500'}`}>KR Accounts</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setActiveProfile('MYR')}
-                className={`flex-1 flex-row items-center justify-center gap-1.5 px-4 py-2 rounded-xl ${activeProfile === 'MYR' ? 'bg-white shadow-sm' : ''}`}
-              >
-                <Compass size={14} color="#d97706" />
-                <Text className={`text-xs font-bold ${activeProfile === 'MYR' ? 'text-stone-900' : 'text-stone-500'}`}>MY Accounts</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Add Transaction Form */}
-          <View className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200">
-            <Text className="font-bold text-stone-800 text-lg mb-1">Add Daily Transaction</Text>
-            <Text className="text-xs text-stone-400 mb-4 font-medium">Record your daily student expenses or income here.</Text>
-
-            <View className="mb-4">
-              <Text className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-1.5">Transaction Type</Text>
-              <View className="flex-row gap-1 bg-stone-100 p-1 rounded-xl">
-                <TouchableOpacity
-                  onPress={() => setTransactionType('expense')}
-                  className={`flex-1 py-1.5 rounded-lg flex-row justify-center items-center gap-1.5 ${transactionType === 'expense' ? 'bg-red-500' : ''}`}
-                >
-                  <TrendingDown size={14} color={transactionType === 'expense' ? 'white' : '#78716c'} />
-                  <Text className={`text-xs font-semibold ${transactionType === 'expense' ? 'text-white' : 'text-stone-500'}`}>Expense</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => setTransactionType('income')}
-                  className={`flex-1 py-1.5 rounded-lg flex-row justify-center items-center gap-1.5 ${transactionType === 'income' ? 'bg-green-600' : ''}`}
-                >
-                  <TrendingUp size={14} color={transactionType === 'income' ? 'white' : '#78716c'} />
-                  <Text className={`text-xs font-semibold ${transactionType === 'income' ? 'text-white' : 'text-stone-500'}`}>Income</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View className="flex-row gap-3 mb-4">
-              <View className="flex-1">
-                <Text className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">
-                  {transactionType === 'income' ? 'Deposit To' : 'Paid From'}
+                <Globe size={13} color="#2563eb" />
+                <Text className={`text-xs font-bold ${profile === 'KRW' ? 'text-stone-900' : 'text-stone-500'}`}>
+                  ₩ KR Accounts
                 </Text>
-                <Dropdown
-                  options={accounts.map(a => ({ label: `${a.bankName} (${a.currency === 'KRW' ? '₩' : 'RM'})`, value: a.id }))}
-                  selectedValue={accountId}
-                  onValueChange={handleAccountChange}
-                  title="Select Account"
-                />
-              </View>
-              <View className="flex-1">
-                <Text className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Date (YYYY-MM-DD)</Text>
-                <TextInput
-                  className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs"
-                  placeholder="YYYY-MM-DD"
-                  value={date}
-                  onChangeText={setDate}
-                />
-              </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setProfile('MYR')}
+                className={`flex-1 flex-row items-center justify-center gap-1.5 py-2 rounded-lg ${profile === 'MYR' ? 'bg-white' : ''}`}
+              >
+                <Compass size={13} color="#d97706" />
+                <Text className={`text-xs font-bold ${profile === 'MYR' ? 'text-stone-900' : 'text-stone-500'}`}>
+                  RM MY Accounts
+                </Text>
+              </TouchableOpacity>
             </View>
-
-            <View className="mb-4">
-              <Text className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">
-                {transactionType === 'income' ? 'Amount Received' : 'Amount Spent'}
-              </Text>
-              <View className="flex-row items-center bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 gap-1">
-                <Text className="text-sm font-bold text-stone-400">{currency === 'KRW' ? '₩' : 'RM'}</Text>
-                <TextInput
-                  className="flex-1 text-sm font-bold text-stone-800"
-                  keyboardType="numeric"
-                  placeholder="0.00"
-                  value={amount}
-                  onChangeText={setAmount}
-                />
-              </View>
-            </View>
-
-            <View className="mb-4">
-              <View className="flex-row justify-between items-center mb-1">
-                <Text className="text-xs font-bold text-stone-500 uppercase tracking-wider">Category</Text>
-                <TouchableOpacity
-                  onPress={() => setShowCategoryCreator(!showCategoryCreator)}
-                  className="flex-row items-center gap-0.5"
-                >
-                  <Plus size={14} color="#22C55E" />
-                  <Text className="text-[11px] text-green-500 font-semibold">Create custom</Text>
-                </TouchableOpacity>
-              </View>
-
-              {!showCategoryCreator ? (
-                <Dropdown
-                  options={categories.map(c => ({ label: c.name, value: c.name }))}
-                  selectedValue={selectedCategory}
-                  onValueChange={setSelectedCategory}
-                  title="Select Category"
-                />
-              ) : (
-                <View className="bg-stone-50 p-3 rounded-2xl border border-stone-200 gap-3">
-                  <Text className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">New custom label</Text>
-                  <TextInput
-                    className="bg-white border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs"
-                    placeholder="e.g. Ramadhan Bazaar, K-Pop"
-                    value={newCatName}
-                    onChangeText={setNewCatName}
-                  />
-                  <View>
-                    <Text className="text-[9px] text-stone-400 font-semibold mb-1">Pick Icon:</Text>
-                    <View className="flex-row flex-wrap gap-1">
-                      {PRESET_ICONS.map(pi => {
-                        const Icon = pi.component;
-                        const isSelected = newCatIcon === pi.name;
-                        return (
-                          <TouchableOpacity
-                            key={pi.name}
-                            onPress={() => setNewCatIcon(pi.name)}
-                            className={`p-1.5 rounded-md border ${isSelected ? 'bg-stone-800 border-stone-800' : 'bg-white border-stone-200'}`}
-                          >
-                            <Icon size={14} color={isSelected ? 'white' : '#78716c'} />
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-                  </View>
-                  <View>
-                    <Text className="text-[9px] text-stone-400 font-semibold mb-1">Pick Color:</Text>
-                    <View className="flex-row gap-2">
-                      {PRESET_COLORS.map(pc => {
-                        const isSelected = newCatColor === pc.name;
-                        return (
-                          <TouchableOpacity
-                            key={pc.name}
-                            onPress={() => setNewCatColor(pc.name)}
-                            style={{
-                              width: 18, height: 18, borderRadius: 9,
-                              backgroundColor: pc.iconColor,
-                              borderWidth: isSelected ? 2.5 : 0,
-                              borderColor: '#1c1917',
-                            }}
-                          />
-                        );
-                      })}
-                    </View>
-                  </View>
-                  <View className="flex-row gap-1.5 pt-1">
-                    <TouchableOpacity onPress={handleCreateCategory} className="flex-1 bg-green-500 py-1.5 rounded-lg items-center">
-                      <Text className="text-white text-[11px] font-semibold">Add Label</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => setShowCategoryCreator(false)} className="bg-stone-200 px-3 py-1.5 rounded-lg">
-                      <Text className="text-stone-600 text-[11px] font-semibold">Cancel</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
-            </View>
-
-            <View className="mb-4">
-              <Text className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Notes / Description</Text>
-              <TextInput
-                className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs"
-                placeholder="e.g. Ice Americano at Backery"
-                value={note}
-                onChangeText={setNote}
-              />
-            </View>
-
-            <TouchableOpacity onPress={handleSubmit} className="w-full bg-green-500 py-2.5 px-4 rounded-xl items-center">
-              <Text className="text-white text-xs font-semibold">Log Transaction</Text>
-            </TouchableOpacity>
           </View>
 
-          {/* Pocket Meters */}
-          <View className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200">
-            <Text className="font-bold text-stone-800 text-base mb-1">Where is my pocket money going?</Text>
-            <Text className="text-xs text-stone-400 mb-4 font-medium">
-              Percentages of total {activeProfile === 'KRW' ? 'Korean Won' : 'Malaysian Ringgit'} expenditures
+          {/* Monthly summary */}
+          <View className="bg-white rounded-3xl border border-stone-200 p-5">
+            {/* Month nav */}
+            <View className="flex-row items-center justify-between mb-4">
+              <TouchableOpacity
+                onPress={prevMonth}
+                className="w-8 h-8 rounded-full bg-stone-100 items-center justify-center"
+              >
+                <ChevronLeft size={16} color="#44403c" />
+              </TouchableOpacity>
+              <Text className="font-extrabold text-stone-900 text-base">
+                {MONTH_NAMES[viewMonth]} {viewYear}
+              </Text>
+              <TouchableOpacity
+                onPress={nextMonth}
+                className="w-8 h-8 rounded-full bg-stone-100 items-center justify-center"
+              >
+                <ChevronRight size={16} color="#44403c" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Summary cards */}
+            <View className="flex-row gap-2">
+              <View className="flex-1 bg-green-50 rounded-2xl p-3 border border-green-100">
+                <View className="flex-row items-center gap-1 mb-1">
+                  <TrendingUp size={12} color="#16a34a" />
+                  <Text className="text-[9px] font-extrabold text-green-700 uppercase tracking-wider">Income</Text>
+                </View>
+                <Text className="font-extrabold text-green-700 text-sm" numberOfLines={1} adjustsFontSizeToFit>
+                  {sym}{fmt(monthIncome)}
+                </Text>
+              </View>
+              <View className="flex-1 bg-red-50 rounded-2xl p-3 border border-red-100">
+                <View className="flex-row items-center gap-1 mb-1">
+                  <TrendingDown size={12} color="#dc2626" />
+                  <Text className="text-[9px] font-extrabold text-red-600 uppercase tracking-wider">Spent</Text>
+                </View>
+                <Text className="font-extrabold text-red-600 text-sm" numberOfLines={1} adjustsFontSizeToFit>
+                  -{sym}{fmt(monthSpend)}
+                </Text>
+              </View>
+              <View className={`flex-1 rounded-2xl p-3 border ${monthNet >= 0 ? 'bg-stone-50 border-stone-200' : 'bg-orange-50 border-orange-100'}`}>
+                <Text className="text-[9px] font-extrabold text-stone-500 uppercase tracking-wider mb-1">Net</Text>
+                <Text
+                  className={`font-extrabold text-sm ${monthNet >= 0 ? 'text-stone-800' : 'text-orange-600'}`}
+                  numberOfLines={1} adjustsFontSizeToFit
+                >
+                  {monthNet < 0 ? '-' : ''}{sym}{fmt(Math.abs(monthNet))}
+                </Text>
+              </View>
+            </View>
+
+            {monthItems.length === 0 && (
+              <Text className="text-xs text-stone-400 text-center mt-3 font-medium">
+                No transactions recorded this month
+              </Text>
+            )}
+          </View>
+
+          {/* Category breakdown */}
+          <View className="bg-white rounded-3xl border border-stone-200 p-5">
+            <Text className="font-bold text-stone-800 text-base mb-0.5">Where is my money going?</Text>
+            <Text className="text-xs text-stone-400 font-medium mb-4">
+              All-time {profile === 'KRW' ? '₩ KRW' : 'RM MYR'} spending by category
             </Text>
             <View className="gap-3">
               {categories.map(c => {
-                const spent = categorySpendingSums[c.name] || 0;
-                const pct = totalSpending > 0 ? (spent / totalSpending) * 100 : 0;
-                const colorConfig = PRESET_COLORS.find(pc => pc.name === c.color) || PRESET_COLORS[0];
+                const spent = catSums[c.name] || 0;
+                const pct   = totalSpend > 0 ? (spent / totalSpend) * 100 : 0;
+                const { Icon, color, bg } = getCatIcon(c.name);
                 return (
-                  <View key={c.id} className="gap-1">
-                    <View className="flex-row justify-between items-center">
-                      <Text className="font-semibold text-stone-700 text-xs">{c.name}</Text>
+                  <View key={c.id} className="gap-1.5">
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-row items-center gap-2">
+                        <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
+                          <Icon size={14} color={color} />
+                        </View>
+                        <Text className="font-semibold text-stone-700 text-xs">{c.name}</Text>
+                      </View>
                       <Text className="text-stone-500 text-xs font-medium">
-                        {pct.toFixed(0)}% ({sym}{' '}
-                        {activeProfile === 'KRW'
+                        {pct.toFixed(0)}% · {sym}{profile === 'KRW'
                           ? Math.round(spent).toLocaleString()
-                          : spent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                          : spent.toFixed(2)}
                       </Text>
                     </View>
-                    <View className="w-full bg-stone-100 rounded-full h-1.5 overflow-hidden">
-                      <View className={`h-full ${colorConfig.bg} rounded-full`} style={{ width: `${pct}%` }} />
+                    <View className="w-full bg-stone-100 rounded-full overflow-hidden" style={{ height: 5 }}>
+                      <View style={{ width: `${pct}%`, height: 5, backgroundColor: color, borderRadius: 99 }} />
                     </View>
                   </View>
                 );
               })}
-              {expenses.filter(exp => exp.currency === activeProfile).length === 0 && (
+              {totalSpend === 0 && (
                 <Text className="text-xs text-stone-400 text-center py-4">
-                  No {activeProfile === 'KRW' ? 'Korean' : 'Malaysian'} expenses recorded yet.
+                  No expenses recorded yet for {profile}
                 </Text>
               )}
             </View>
+
+            {/* Total */}
+            {totalSpend > 0 && (
+              <View className="mt-4 pt-4 border-t border-stone-100 items-end">
+                <Text className="text-[10px] text-stone-400 font-bold uppercase tracking-wider">Total spent ({profile})</Text>
+                <Text className="font-bold text-stone-900 text-xl">{sym}{fmt(totalSpend)}</Text>
+                <Text className="text-xs text-stone-400 mt-0.5 font-medium">
+                  ≈ {profile === 'KRW' ? 'RM' : '₩'} {fmtOther(totalSpend)}
+                </Text>
+              </View>
+            )}
           </View>
 
-          {/* Expense Log */}
-          <View className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200">
-            <View className="mb-3">
-              <Text className="font-bold text-stone-800 text-lg">My Pocket Check Log</Text>
-              <Text className="text-xs text-stone-400 font-medium">Chronological history of daily transactions</Text>
-            </View>
+          {/* Transaction log */}
+          <View className="bg-white rounded-3xl border border-stone-200 p-5">
+            <Text className="font-bold text-stone-800 text-base mb-0.5">Transaction Log</Text>
+            <Text className="text-xs text-stone-400 font-medium mb-3">Full history with filters</Text>
 
-            <View className="flex-row items-center bg-stone-50 border border-stone-200 rounded-xl px-3 py-1.5 gap-2 mb-3">
-              <Search size={16} color="#a8a29e" />
+            {/* Search */}
+            <View className="flex-row items-center bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 gap-2 mb-3">
+              <Search size={15} color="#a8a29e" />
               <TextInput
-                className="flex-1 text-xs"
-                placeholder="Search note or label..."
-                value={searchQuery}
-                onChangeText={setSearchQuery}
+                className="flex-1 text-xs text-stone-800"
+                placeholder="Search note or category..."
+                placeholderTextColor="#d6d3d1"
+                value={search}
+                onChangeText={setSearch}
               />
             </View>
 
-            <View className="flex-row gap-2 mb-4 items-center flex-wrap">
-              <View className="flex-row items-center gap-1 bg-stone-50 px-2.5 py-1.5 rounded-lg border border-stone-200">
-                <Filter size={12} color="#a8a29e" />
-                <Text className="text-xs text-stone-600 font-medium">Filter:</Text>
+            {/* Filters */}
+            <View className="flex-row gap-2 mb-4 items-center">
+              <View className="flex-row items-center gap-1 bg-stone-50 px-2 py-1.5 rounded-lg border border-stone-200">
+                <Filter size={11} color="#a8a29e" />
+                <Text className="text-[10px] text-stone-500 font-bold">Filter</Text>
               </View>
-              <View style={{ flex: 1, minWidth: 130 }}>
+              <View style={{ flex: 1 }}>
                 <Dropdown
                   compact
                   options={[{ label: 'All Accounts', value: 'all' }, ...accounts.map(a => ({ label: a.bankName, value: a.id }))]}
-                  selectedValue={filterAccount}
-                  onValueChange={setFilterAccount}
+                  selectedValue={filterAcc}
+                  onValueChange={setFilterAcc}
                   title="Filter by Account"
                 />
               </View>
-              <View style={{ flex: 1, minWidth: 130 }}>
+              <View style={{ flex: 1 }}>
                 <Dropdown
                   compact
                   options={[{ label: 'All Categories', value: 'all' }, ...categories.map(c => ({ label: c.name, value: c.name }))]}
-                  selectedValue={filterCategory}
-                  onValueChange={setFilterCategory}
+                  selectedValue={filterCat}
+                  onValueChange={setFilterCat}
                   title="Filter by Category"
                 />
               </View>
             </View>
 
-            <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
-              <View className="gap-2.5">
-                {filteredExpenses.map(exp => {
-                  const matchedAccount = accounts.find(a => a.id === exp.accountId);
-                  const isPositive = exp.type === 'income' || exp.amount < 0;
-                  return (
-                    <View key={exp.id} className="flex-row items-center justify-between p-3.5 bg-stone-50 rounded-2xl border border-stone-200">
-                      <View className="flex-row items-center gap-3 flex-1 mr-2">
-                        {renderCategoryIcon(exp.category)}
-                        <View className="flex-1">
-                          <Text className="font-semibold text-stone-800 text-xs" numberOfLines={1}>{exp.note}</Text>
-                          <View className="flex-row items-center gap-1 mt-0.5 flex-wrap">
-                            <Text className="bg-stone-100 px-1.5 py-0.5 rounded text-stone-600 font-semibold text-[10px]">{exp.category}</Text>
-                            <Text className="text-stone-400 text-[10px]">•</Text>
-                            <Text className="text-stone-400 text-[10px] font-medium">{matchedAccount?.bankName || '?'}</Text>
-                            <Text className="text-stone-400 text-[10px]">•</Text>
-                            <Text className="text-stone-400 text-[10px]">{exp.date}</Text>
-                          </View>
-                        </View>
+            {/* List */}
+            <View className="gap-2">
+              {logItems.map(exp => {
+                const acc       = accounts.find(a => a.id === exp.accountId);
+                const isIncome  = exp.type === 'income';
+                const { Icon, color, bg } = getCatIcon(exp.category);
+                const expSym    = exp.currency === 'KRW' ? '₩' : 'RM';
+                const formatted = exp.currency === 'KRW'
+                  ? Math.round(exp.amount).toLocaleString()
+                  : exp.amount.toFixed(2);
+                return (
+                  <View
+                    key={exp.id}
+                    className="flex-row items-center justify-between p-3 bg-stone-50 rounded-2xl border border-stone-200"
+                  >
+                    <View className="flex-row items-center gap-2.5 flex-1 mr-2">
+                      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
+                        <Icon size={16} color={color} />
                       </View>
-                      <View className="flex-row items-center gap-2">
-                        {exp.type && (
-                          <View className={`px-1.5 py-0.5 rounded-md ${exp.type === 'income' ? 'bg-green-50 border border-green-100' : 'bg-red-50 border border-red-100'}`}>
-                            <Text className={`text-[10px] font-extrabold uppercase ${exp.type === 'income' ? 'text-green-600' : 'text-red-500'}`}>{exp.type}</Text>
-                          </View>
-                        )}
-                        <Text className={`font-bold text-xs ${isPositive ? 'text-green-600' : 'text-red-500'}`}>
-                          {isPositive ? '+' : '-'} {exp.currency === 'KRW' ? '₩' : 'RM'}{' '}
-                          {Math.abs(exp.amount).toLocaleString(undefined, { minimumFractionDigits: exp.currency === 'KRW' ? 0 : 2 })}
+                      <View className="flex-1">
+                        <Text className="font-semibold text-stone-800 text-xs" numberOfLines={1}>{exp.note}</Text>
+                        <Text className="text-stone-400 text-[10px] mt-0.5">
+                          {exp.category} · {acc?.bankName || '?'} · {exp.date}
                         </Text>
-                        <TouchableOpacity onPress={() => handleDeleteExpense(exp.id)} className="p-1">
-                          <Trash2 size={15} color="#d4d0ce" />
-                        </TouchableOpacity>
                       </View>
                     </View>
-                  );
-                })}
-                {filteredExpenses.length === 0 && (
-                  <View className="py-10 items-center">
-                    <Text className="text-xs text-stone-400 font-medium">No transactions match your current filters.</Text>
+                    <View className="flex-row items-center gap-2">
+                      <Text className={`font-bold text-xs ${isIncome ? 'text-green-600' : 'text-red-500'}`}>
+                        {isIncome ? '+' : '-'}{expSym}{formatted}
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => handleDeleteExpense(exp.id)}
+                        style={{ padding: 5, borderRadius: 8, backgroundColor: '#fef2f2' }}
+                      >
+                        <Trash2 size={13} color="#ef4444" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                )}
-              </View>
-            </ScrollView>
-
-            <View className="mt-4 pt-4 border-t border-stone-200 items-end">
-              <Text className="text-[10px] text-stone-400 font-bold uppercase tracking-wider">Total spent ({activeProfile})</Text>
-              <Text className="font-bold text-stone-900 text-xl">
-                {sym}{' '}
-                {activeProfile === 'KRW'
-                  ? Math.round(totalSpending).toLocaleString()
-                  : totalSpending.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </Text>
-              <Text className="text-xs text-stone-400 mt-0.5 font-medium">
-                ≈ {activeProfile === 'KRW' ? 'RM' : '₩'}{' '}
-                {activeProfile === 'KRW'
-                  ? ((totalSpending / 1000) * exchangeRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                  : Math.round(totalSpending * (1000 / exchangeRate)).toLocaleString()}
-              </Text>
+                );
+              })}
+              {logItems.length === 0 && (
+                <View className="py-10 items-center">
+                  <Text className="text-xs text-stone-400 font-medium">No transactions match your filters</Text>
+                </View>
+              )}
             </View>
           </View>
 
