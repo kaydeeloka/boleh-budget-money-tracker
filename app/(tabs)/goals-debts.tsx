@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Picker } from '@react-native-picker/picker';
 import { Plus, Check, Sparkles, HandCoins, TrendingUp, TrendingDown } from 'lucide-react-native';
 import Svg, { Rect, Circle, Path } from 'react-native-svg';
 import { useAppContext } from '../../src/context/AppContext';
 import { Currency, BorrowRecord } from '../../src/types';
+import Dropdown from '../../src/components/ui/Dropdown';
 
 function TabungIcon({ size = 24, color = '#22C55E' }: { size?: number; color?: string }) {
   return (
@@ -195,17 +195,13 @@ export default function GoalsDebtsScreen() {
               <Text className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">
                 {isBorrow ? 'Record Repayment' : 'Record Collection'}
               </Text>
-              <View className="border border-stone-200 rounded-lg overflow-hidden bg-stone-50">
-                <Picker selectedValue={actionAccountId} onValueChange={setActionAccountId} style={{ height: 38 }}>
-                  {accounts.map(acc => (
-                    <Picker.Item
-                      key={acc.id}
-                      label={`${acc.bankName} (${acc.currency === 'KRW' ? '₩' : 'RM'} ${acc.balance.toLocaleString()})`}
-                      value={acc.id}
-                    />
-                  ))}
-                </Picker>
-              </View>
+              <Dropdown
+                compact
+                options={accounts.map(acc => ({ label: `${acc.bankName} (${acc.currency === 'KRW' ? '₩' : 'RM'} ${acc.balance.toLocaleString()})`, value: acc.id }))}
+                selectedValue={actionAccountId}
+                onValueChange={setActionAccountId}
+                title="Select Account"
+              />
               <View className="flex-row items-center bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1 gap-1">
                 <Text className="text-[10px] font-bold text-stone-400">{sym}</Text>
                 <TextInput
@@ -322,12 +318,13 @@ export default function GoalsDebtsScreen() {
                   </View>
                   <View className="flex-1">
                     <Text className="text-[10px] font-semibold text-stone-500 uppercase mb-1">Currency</Text>
-                    <View className="border border-stone-200 rounded-lg bg-white overflow-hidden">
-                      <Picker selectedValue={goalCurrency} onValueChange={(v) => setGoalCurrency(v as Currency)} style={{ height: 38 }}>
-                        <Picker.Item label="Korean Won (₩)" value="KRW" />
-                        <Picker.Item label="Ringgit (RM)" value="MYR" />
-                      </Picker>
-                    </View>
+                    <Dropdown
+                      compact
+                      options={[{ label: 'Korean Won (₩)', value: 'KRW' }, { label: 'Ringgit (RM)', value: 'MYR' }]}
+                      selectedValue={goalCurrency}
+                      onValueChange={(v) => setGoalCurrency(v as Currency)}
+                      title="Select Currency"
+                    />
                   </View>
                 </View>
                 <View>
@@ -388,17 +385,13 @@ export default function GoalsDebtsScreen() {
 
                     {activeContributingGoalId === goal.id ? (
                       <View className="bg-white p-2.5 rounded-xl border border-stone-200 gap-2">
-                        <View className="border border-stone-200 rounded-lg overflow-hidden bg-stone-50">
-                          <Picker selectedValue={contribAccountId} onValueChange={setContribAccountId} style={{ height: 38 }}>
-                            {accounts.map(acc => (
-                              <Picker.Item
-                                key={acc.id}
-                                label={`${acc.bankName} (${acc.currency === 'KRW' ? '₩' : 'RM'} ${acc.balance.toLocaleString()})`}
-                                value={acc.id}
-                              />
-                            ))}
-                          </Picker>
-                        </View>
+                        <Dropdown
+                          compact
+                          options={accounts.map(acc => ({ label: `${acc.bankName} (${acc.currency === 'KRW' ? '₩' : 'RM'} ${acc.balance.toLocaleString()})`, value: acc.id }))}
+                          selectedValue={contribAccountId}
+                          onValueChange={setContribAccountId}
+                          title="Select Account"
+                        />
                         <View className="flex-row items-center bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1 gap-1">
                           <Text className="text-[10px] font-bold text-stone-400">
                             {accounts.find(a => a.id === contribAccountId)?.currency === 'KRW' ? '₩' : 'RM'}
@@ -550,12 +543,13 @@ export default function GoalsDebtsScreen() {
                   </View>
                   <View className="flex-1">
                     <Text className="text-[10px] font-semibold text-stone-500 uppercase mb-1">Currency</Text>
-                    <View className="border border-stone-200 rounded-lg bg-white overflow-hidden">
-                      <Picker selectedValue={debtCurrency} onValueChange={(v) => setDebtCurrency(v as Currency)} style={{ height: 38 }}>
-                        <Picker.Item label="₩ KRW" value="KRW" />
-                        <Picker.Item label="RM MYR" value="MYR" />
-                      </Picker>
-                    </View>
+                    <Dropdown
+                      compact
+                      options={[{ label: '₩ KRW', value: 'KRW' }, { label: 'RM MYR', value: 'MYR' }]}
+                      selectedValue={debtCurrency}
+                      onValueChange={(v) => setDebtCurrency(v as Currency)}
+                      title="Select Currency"
+                    />
                   </View>
                 </View>
 

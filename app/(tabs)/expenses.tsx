@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Picker } from '@react-native-picker/picker';
 import {
   Plus, Trash2, Search, Filter, ShoppingBag, BookOpen, Coffee,
   HelpCircle, Sparkles, Smile, Plane, Utensils, Tag, Globe,
@@ -9,6 +8,7 @@ import {
 } from 'lucide-react-native';
 import { useAppContext } from '../../src/context/AppContext';
 import { BudgetCategory, Currency } from '../../src/types';
+import Dropdown from '../../src/components/ui/Dropdown';
 
 const PRESET_ICONS = [
   { name: 'Utensils', component: Utensils },
@@ -220,13 +220,12 @@ export default function ExpensesScreen() {
                 <Text className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">
                   {transactionType === 'income' ? 'Deposit To' : 'Paid From'}
                 </Text>
-                <View className="border border-stone-200 rounded-xl overflow-hidden bg-stone-50">
-                  <Picker selectedValue={accountId} onValueChange={handleAccountChange} style={{ height: 44 }}>
-                    {accounts.map(a => (
-                      <Picker.Item key={a.id} label={`${a.bankName} (${a.currency === 'KRW' ? '₩' : 'RM'})`} value={a.id} />
-                    ))}
-                  </Picker>
-                </View>
+                <Dropdown
+                  options={accounts.map(a => ({ label: `${a.bankName} (${a.currency === 'KRW' ? '₩' : 'RM'})`, value: a.id }))}
+                  selectedValue={accountId}
+                  onValueChange={handleAccountChange}
+                  title="Select Account"
+                />
               </View>
               <View className="flex-1">
                 <Text className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Date (YYYY-MM-DD)</Text>
@@ -268,11 +267,12 @@ export default function ExpensesScreen() {
               </View>
 
               {!showCategoryCreator ? (
-                <View className="border border-stone-200 rounded-xl overflow-hidden bg-stone-50">
-                  <Picker selectedValue={selectedCategory} onValueChange={setSelectedCategory} style={{ height: 44 }}>
-                    {categories.map(c => <Picker.Item key={c.id} label={c.name} value={c.name} />)}
-                  </Picker>
-                </View>
+                <Dropdown
+                  options={categories.map(c => ({ label: c.name, value: c.name }))}
+                  selectedValue={selectedCategory}
+                  onValueChange={setSelectedCategory}
+                  title="Select Category"
+                />
               ) : (
                 <View className="bg-stone-50 p-3 rounded-2xl border border-stone-200 gap-3">
                   <Text className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">New custom label</Text>
@@ -400,24 +400,28 @@ export default function ExpensesScreen() {
               />
             </View>
 
-            <View className="flex-row gap-2 mb-4 flex-wrap">
-              <View className="flex-row items-center gap-1 bg-stone-50 px-2.5 py-1 rounded-lg border border-stone-200">
+            <View className="flex-row gap-2 mb-4 items-center flex-wrap">
+              <View className="flex-row items-center gap-1 bg-stone-50 px-2.5 py-1.5 rounded-lg border border-stone-200">
                 <Filter size={12} color="#a8a29e" />
                 <Text className="text-xs text-stone-600 font-medium">Filter:</Text>
               </View>
-              <View className="border border-stone-200 rounded-lg bg-stone-50 overflow-hidden">
-                <Picker selectedValue={filterAccount} onValueChange={setFilterAccount} style={{ height: 32, width: 160 }}>
-                  <Picker.Item label="All Accounts" value="all" />
-                  {accounts.map(a => (
-                    <Picker.Item key={a.id} label={a.bankName} value={a.id} />
-                  ))}
-                </Picker>
+              <View style={{ flex: 1, minWidth: 130 }}>
+                <Dropdown
+                  compact
+                  options={[{ label: 'All Accounts', value: 'all' }, ...accounts.map(a => ({ label: a.bankName, value: a.id }))]}
+                  selectedValue={filterAccount}
+                  onValueChange={setFilterAccount}
+                  title="Filter by Account"
+                />
               </View>
-              <View className="border border-stone-200 rounded-lg bg-stone-50 overflow-hidden">
-                <Picker selectedValue={filterCategory} onValueChange={setFilterCategory} style={{ height: 32, width: 150 }}>
-                  <Picker.Item label="All Categories" value="all" />
-                  {categories.map(c => <Picker.Item key={c.id} label={c.name} value={c.name} />)}
-                </Picker>
+              <View style={{ flex: 1, minWidth: 130 }}>
+                <Dropdown
+                  compact
+                  options={[{ label: 'All Categories', value: 'all' }, ...categories.map(c => ({ label: c.name, value: c.name }))]}
+                  selectedValue={filterCategory}
+                  onValueChange={setFilterCategory}
+                  title="Filter by Category"
+                />
               </View>
             </View>
 

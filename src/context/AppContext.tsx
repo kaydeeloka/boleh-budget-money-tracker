@@ -80,22 +80,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [rate, savedAccounts, savedExpenses, savedGoals, savedRecords, savedCategories] = await Promise.all([
+        const CAT_VERSION = 'v3';
+        const [rate, savedAccounts, savedExpenses, savedGoals, savedRecords, savedCategories, catVersion] = await Promise.all([
           AsyncStorage.getItem('saku_rate'),
           AsyncStorage.getItem('saku_accounts'),
           AsyncStorage.getItem('saku_expenses'),
           AsyncStorage.getItem('saku_goals'),
           AsyncStorage.getItem('saku_records'),
           AsyncStorage.getItem('saku_categories'),
+          AsyncStorage.getItem('saku_cat_version'),
         ]);
         if (rate) setExchangeRateState(parseFloat(rate));
         if (savedAccounts) setAccounts(JSON.parse(savedAccounts));
         if (savedExpenses) setExpenses(JSON.parse(savedExpenses));
         if (savedGoals) setGoals(JSON.parse(savedGoals));
         if (savedRecords) setRecords(JSON.parse(savedRecords));
-        if (savedCategories) {
+
+        if (catVersion !== CAT_VERSION) {
+          // Version mismatch — reset to all initial categories + keep any custom ones
+          const saved: BudgetCategory[] = savedCategories ? JSON.parse(savedCategories) : [];
+          const customOnly = saved.filter(s => s.isCustom);
+          const merged = [...INITIAL_CATEGORIES, ...customOnly];
+          setCategories(merged);
+          await AsyncStorage.setItem('saku_cat_version', CAT_VERSION);
+          await AsyncStorage.setItem('saku_categories', JSON.stringify(merged));
+        } else if (savedCategories) {
           const saved: BudgetCategory[] = JSON.parse(savedCategories);
-          // Always keep all initial categories, add any custom ones on top
           const customOnly = saved.filter(s => s.isCustom);
           setCategories([...INITIAL_CATEGORIES, ...customOnly]);
         }
