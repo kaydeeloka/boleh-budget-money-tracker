@@ -13,7 +13,7 @@ export default function VaultTab() {
     accounts, expenses,
     totalInMyr, totalInKrw,
     handleAdjustBalance, handleRecordTransfer,
-    handleAddAccount, handleDeleteAccount, handleUpdateAccountNo,
+    handleAddAccount,
     handleUseCalculatedAmount,
     setQuickAmountToFill,
   } = useAppContext();
@@ -114,8 +114,6 @@ export default function VaultTab() {
           onAdjustBalance={handleAdjustBalance}
           onRecordTransfer={handleRecordTransfer}
           onAddAccount={handleAddAccount}
-          onDeleteAccount={handleDeleteAccount}
-          onUpdateAccountNo={handleUpdateAccountNo}
         />
 
         {/* Currency Converter */}

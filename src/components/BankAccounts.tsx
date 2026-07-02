@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Modal, Alert } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import * as Clipboard from 'expo-clipboard';
-import { Plus, ArrowRightLeft, Check, Trash2, Globe, Compass, ChevronLeft, ChevronRight, Eye, EyeOff, Copy } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { Plus, ArrowRightLeft, Check, Globe, Compass, ChevronLeft, ChevronRight, Eye, EyeOff, Copy, SlidersHorizontal } from 'lucide-react-native';
 import { BankAccount, Currency } from '../types';
 
 interface BankAccountsProps {
@@ -11,8 +12,6 @@ interface BankAccountsProps {
   onAdjustBalance: (accountId: string, newBalance: number) => void;
   onRecordTransfer: (fromAccountId: string, toAccountId: string, amountFrom: number, amountTo: number) => void;
   onAddAccount: (acc: Omit<BankAccount, 'id'>) => void;
-  onDeleteAccount: (accountId: string) => void;
-  onUpdateAccountNo: (accountId: string, accountNo: string) => void;
 }
 
 const CARD_BG = '#166534';
@@ -30,12 +29,11 @@ function CardChip() {
   );
 }
 
-export default function BankAccounts({ accounts, exchangeRate, onAdjustBalance, onRecordTransfer, onAddAccount, onDeleteAccount, onUpdateAccountNo }: BankAccountsProps) {
+export default function BankAccounts({ accounts, exchangeRate, onAdjustBalance, onRecordTransfer, onAddAccount }: BankAccountsProps) {
+  const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
   const [editBalanceVal, setEditBalanceVal] = useState('');
-  const [editingAccountNoId, setEditingAccountNoId] = useState<string | null>(null);
-  const [editAccountNoVal, setEditAccountNoVal] = useState('');
   const [showAccountNo, setShowAccountNo] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -120,10 +118,15 @@ export default function BankAccounts({ accounts, exchangeRate, onAdjustBalance, 
           <Text className="text-xs text-stone-400 mt-1 leading-tight">Manage balances{'\n'}in both countries</Text>
         </View>
         <View className="items-end gap-2">
-          <TouchableOpacity onPress={() => setShowAddBankForm(!showAddBankForm)} className="flex-row items-center gap-1.5 bg-stone-100 border border-stone-200 px-3.5 py-2 rounded-xl">
-            <Plus size={13} color="#44403c" />
-            <Text className="text-xs font-semibold text-stone-700">Add Bank</Text>
-          </TouchableOpacity>
+          <View className="flex-row items-center gap-2">
+            <TouchableOpacity onPress={() => setShowAddBankForm(!showAddBankForm)} className="flex-row items-center gap-1.5 bg-stone-100 border border-stone-200 px-3.5 py-2 rounded-xl">
+              <Plus size={13} color="#44403c" />
+              <Text className="text-xs font-semibold text-stone-700">Add Bank</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('/accounts')} className="w-8 h-8 rounded-xl bg-stone-100 border border-stone-200 items-center justify-center">
+              <SlidersHorizontal size={15} color="#44403c" />
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity onPress={handleOpenTransfer} className="flex-row items-center gap-1.5 bg-green-500 px-4 py-2.5 rounded-xl shadow-sm">
             <ArrowRightLeft size={14} color="white" />
             <Text className="text-xs font-bold text-white">Transfer &{'\n'}Convert</Text>
@@ -161,11 +164,6 @@ export default function BankAccounts({ accounts, exchangeRate, onAdjustBalance, 
               {acc.bankName} ({acc.currency === 'KRW' ? 'KR' : 'MY'})
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              {accounts.length > 1 && (
-                <TouchableOpacity onPress={() => Alert.alert('Delete Account', `Remove ${acc.name}?`, [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: () => { onDeleteAccount(acc.id); setCurrentIndex(0); } }])}>
-                  <Trash2 size={14} color="rgba(255,255,255,0.4)" />
-                </TouchableOpacity>
-              )}
               <View style={{ backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 {acc.currency === 'KRW'
                   ? <Globe size={11} color="white" />
@@ -180,51 +178,32 @@ export default function BankAccounts({ accounts, exchangeRate, onAdjustBalance, 
             {acc.name}
           </Text>
 
-          {/* Account number row */}
-          {editingAccountNoId === acc.id ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14 }}>
-              <TextInput
-                style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.15)', color: 'white', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, fontSize: 12 }}
-                placeholder="e.g. 102-392-4112"
-                placeholderTextColor="rgba(255,255,255,0.35)"
-                value={editAccountNoVal}
-                onChangeText={setEditAccountNoVal}
-                onSubmitEditing={() => { onUpdateAccountNo(acc.id, editAccountNoVal); setEditingAccountNoId(null); }}
-                autoFocus
-              />
-              <TouchableOpacity onPress={() => { onUpdateAccountNo(acc.id, editAccountNoVal); setEditingAccountNoId(null); }}>
-                <Check size={16} color="white" />
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-              <TouchableOpacity onPress={() => { setEditingAccountNoId(acc.id); setEditAccountNoVal(acc.accountNo || ''); }}>
-                <Text style={{ color: acc.accountNo ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.35)', fontSize: 12, fontFamily: 'monospace', letterSpacing: 0.5 }}>
-                  {acc.accountNo
-                    ? (showAccountNo ? acc.accountNo : `•••• ${acc.accountNo.replace(/-/g, '').slice(-4)}`)
-                    : '+ Add Account No.'}
-                </Text>
-              </TouchableOpacity>
-              {acc.accountNo && (
-                <>
-                  <TouchableOpacity onPress={() => setShowAccountNo(v => !v)}>
-                    {showAccountNo
-                      ? <EyeOff size={14} color="rgba(255,255,255,0.5)" />
-                      : <Eye size={14} color="rgba(255,255,255,0.5)" />}
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={async () => {
-                    await Clipboard.setStringAsync(acc.accountNo!);
-                    setCopiedId(acc.id);
-                    setTimeout(() => setCopiedId(null), 1800);
-                  }}>
-                    {copiedId === acc.id
-                      ? <Text style={{ color: '#86efac', fontSize: 10, fontWeight: 'bold' }}>Copied!</Text>
-                      : <Copy size={14} color="rgba(255,255,255,0.5)" />}
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
-          )}
+          {/* Account number row — read-only, copy + eye only */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+            <Text style={{ color: acc.accountNo ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.3)', fontSize: 12, fontFamily: 'monospace', letterSpacing: 0.5 }}>
+              {acc.accountNo
+                ? (showAccountNo ? acc.accountNo : `•••• ${acc.accountNo.replace(/-/g, '').slice(-4)}`)
+                : '——'}
+            </Text>
+            {acc.accountNo && (
+              <>
+                <TouchableOpacity onPress={() => setShowAccountNo(v => !v)}>
+                  {showAccountNo
+                    ? <EyeOff size={14} color="rgba(255,255,255,0.5)" />
+                    : <Eye size={14} color="rgba(255,255,255,0.5)" />}
+                </TouchableOpacity>
+                <TouchableOpacity onPress={async () => {
+                  await Clipboard.setStringAsync(acc.accountNo!);
+                  setCopiedId(acc.id);
+                  setTimeout(() => setCopiedId(null), 1800);
+                }}>
+                  {copiedId === acc.id
+                    ? <Text style={{ color: '#86efac', fontSize: 10, fontWeight: 'bold' }}>Copied!</Text>
+                    : <Copy size={14} color="rgba(255,255,255,0.5)" />}
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
 
           {/* Chip row */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
@@ -268,8 +247,8 @@ export default function BankAccounts({ accounts, exchangeRate, onAdjustBalance, 
                 </>
               )}
             </View>
-            <TouchableOpacity onPress={() => { setEditingAccountId(acc.id); setEditBalanceVal(acc.balance.toString()); setEditingAccountNoId(null); }}>
-              <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, textDecorationLine: 'underline' }}>Adjust</Text>
+            <TouchableOpacity onPress={() => { setEditingAccountId(acc.id); setEditBalanceVal(acc.balance.toString()); }}>
+              <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, textDecorationLine: 'underline' }}>Edit</Text>
             </TouchableOpacity>
           </View>
         </View>
