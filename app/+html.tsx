@@ -15,10 +15,20 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="viewport" content="width=device-width, initial-scale=0.88, maximum-scale=0.88, viewport-fit=cover" />
         <meta name="theme-color" content="#594573" />
         <meta name="description" content="Track Every Won & Ringgit." />
+        <link rel="manifest" href="/manifest.json" />
         <title>Saku — Track Every Won &amp; Ringgit.</title>
         <ScrollViewStyleReset />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <script dangerouslySetInnerHTML={{ __html: `
+          if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+              navigator.serviceWorker.register('/sw.js');
+            });
+          }
+        ` }} />
+      </body>
     </html>
   );
 }
