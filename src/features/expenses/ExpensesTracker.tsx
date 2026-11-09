@@ -1,8 +1,8 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { Plus, Trash2, Search, Filter, ShoppingBag, BookOpen, Coffee, HelpCircle, Sparkles, Smile, Plane, Utensils, Tag, Globe, Compass, TrendingUp, TrendingDown } from 'lucide-react-native';
-import { Expense, BankAccount, BudgetCategory, Currency } from '../types';
+import { Expense, BankAccount, BudgetCategory, Currency } from '@/src/types';
 
 interface ExpensesTrackerProps {
   expenses: Expense[];

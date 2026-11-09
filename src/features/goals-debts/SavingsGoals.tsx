@@ -1,8 +1,8 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Alert, ScrollView } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { PiggyBank, Plus, Check, Sparkles } from 'lucide-react-native';
-import { SavingsGoal, BankAccount, Currency } from '../types';
+import { Coins, Plus, Check, Sparkles } from 'lucide-react-native';
+import { SavingsGoal, BankAccount, Currency } from '@/src/types';
 
 interface SavingsGoalsProps {
   goals: SavingsGoal[];
@@ -47,7 +47,7 @@ export default function SavingsGoals({ goals, accounts, onAddGoal, onAddContribu
       <View className="flex-row items-center justify-between mb-5">
         <View className="flex-row items-center gap-2">
           <View className="p-2 bg-green-50 rounded-xl">
-            <PiggyBank size={20} color="#22C55E" />
+            <Coins size={20} color="#22C55E" />
           </View>
           <View>
             <Text className="font-bold text-stone-800 text-lg">My Piggy Bank Goals</Text>

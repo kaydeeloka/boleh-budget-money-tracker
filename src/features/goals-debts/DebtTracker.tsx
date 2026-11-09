@@ -1,8 +1,8 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { HandCoins, Plus, Check, TrendingUp, TrendingDown } from 'lucide-react-native';
-import { BorrowRecord, BankAccount, Currency } from '../types';
+import { BorrowRecord, BankAccount, Currency } from '@/src/types';
 
 interface DebtTrackerProps {
   records: BorrowRecord[];

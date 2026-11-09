@@ -1,49 +1,15 @@
+import React, { useState } from 'react';
 import { Tabs, useRouter } from 'expo-router';
-import { View, TouchableOpacity } from 'react-native';
-import { CreditCard, BarChart2, Plus, LayoutGrid } from 'lucide-react-native';
-import Svg, { Rect, Circle, Path } from 'react-native-svg';
+import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { LayoutDashboard, CreditCard, BarChart2, Plus, LayoutGrid, BookOpen, Landmark, Wallet, Coins, CalendarClock } from 'lucide-react-native';
+import { useAppContext } from '@/src/context/AppContext';
+import { T, useIsWide, money } from '@/src/theme';
+import { ScopePanel } from '@/src/features/navigation/ScopePicker';
+import NewEntryPicker from '@/src/features/transactions/NewEntryPicker';
 
-function TabungIcon({ size = 24, color = '#22C55E' }: { size?: number; color?: string }) {
-  const isActive = color !== '#a8a29e';
-  const op = isActive ? 1 : 0.55;
-  return (
-    <Svg width={size} height={size} viewBox="0 0 32 32" fill="none" opacity={op}>
-      {/* Jar body */}
-      <Path
-        d="M11 11 L21 11 C25 12 26 14 26 15.5 L26 27.5 C26 29 24.7 30 23 30 L9 30 C7.3 30 6 29 6 27.5 L6 15.5 C6 14 7 12 11 11 Z"
-        fill="#DEE6FF" stroke="#B8C4EE" strokeWidth="0.8"
-      />
-      {/* Glass shine */}
-      <Path d="M8.5 15 C8.2 17 8 20 8.3 24" stroke="white" strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.75" />
-      {/* Lid */}
-      <Rect x="6" y="7.5" width="20" height="5" rx="2.5" fill="#8B5E3C" />
-      {/* Lid top highlight */}
-      <Rect x="6.5" y="7.5" width="19" height="2" rx="1.5" fill="#A87848" />
-      {/* Coin slot */}
-      <Rect x="13.5" y="5.8" width="5" height="3" rx="1" fill="#5A3820" />
-      {/* Top coin (partially above lid) */}
-      <Circle cx="16" cy="5" r="3.8" fill="#F5C518" />
-      <Circle cx="16" cy="5" r="3.8" stroke="#D4A017" strokeWidth="0.7" fill="none" />
-      <Circle cx="16" cy="5" r="2.4" stroke="#D4A017" strokeWidth="0.5" fill="none" />
-      <Path d="M16 2.5 L16 7.5" stroke="#D4A017" strokeWidth="0.8" strokeLinecap="round" fill="none" />
-      <Path d="M14.3 3.7 C14.8 3.3 15.3 3.1 16 3.1 C17.2 3.1 17.8 3.8 17.8 4.5 C17.8 5.2 17 5.5 16 5.5 C14.9 5.5 14.3 6 14.3 6.6 C14.3 7.2 15 7.6 16 7.6" stroke="#D4A017" strokeWidth="0.7" strokeLinecap="round" fill="none" />
-      {/* Coin 1 inside (upper-left) */}
-      <Circle cx="13" cy="18.5" r="4.8" fill="#F5C518" />
-      <Circle cx="13" cy="18.5" r="4.8" stroke="#D4A017" strokeWidth="0.7" fill="none" />
-      <Circle cx="13" cy="18.5" r="3" stroke="#D4A017" strokeWidth="0.5" fill="none" />
-      <Path d="M13 15.5 L13 21.5" stroke="#D4A017" strokeWidth="0.9" strokeLinecap="round" fill="none" />
-      <Path d="M11.1 16.9 C11.6 16.4 12.2 16.2 13 16.2 C14.4 16.2 15.1 17 15.1 17.8 C15.1 18.6 14.2 18.9 13 18.9 C11.7 18.9 11.1 19.5 11.1 20.1 C11.1 20.8 12 21.2 13 21.2" stroke="#D4A017" strokeWidth="0.8" strokeLinecap="round" fill="none" />
-      {/* Coin 2 inside (lower-right) */}
-      <Circle cx="19" cy="25.5" r="4.2" fill="#F5C518" />
-      <Circle cx="19" cy="25.5" r="4.2" stroke="#D4A017" strokeWidth="0.7" fill="none" />
-      <Circle cx="19" cy="25.5" r="2.6" stroke="#D4A017" strokeWidth="0.5" fill="none" />
-      <Path d="M19 22.8 L19 28.2" stroke="#D4A017" strokeWidth="0.9" strokeLinecap="round" fill="none" />
-      <Path d="M17.2 24.1 C17.7 23.7 18.2 23.5 19 23.5 C20.3 23.5 21 24.2 21 24.9 C21 25.7 20.1 26 19 26 C17.8 26 17.2 26.5 17.2 27.1 C17.2 27.7 18 28.1 19 28.1" stroke="#D4A017" strokeWidth="0.8" strokeLinecap="round" fill="none" />
-    </Svg>
-  );
-}
 
-const ACTIVE = '#22C55E';
+const ACTIVE = () => T.green; // follows KRW green / MYR purple
 const INACTIVE = '#a8a29e';
 
 function CenterButton({ onPress }: { onPress: () => void }) {
@@ -51,15 +17,16 @@ function CenterButton({ onPress }: { onPress: () => void }) {
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.85}
+      accessibilityLabel="Add transaction"
       style={{
         width: 58,
         height: 58,
         borderRadius: 29,
-        backgroundColor: ACTIVE,
+        backgroundColor: ACTIVE(),
         alignItems: 'center',
         justifyContent: 'center',
         bottom: 18,
-        shadowColor: ACTIVE,
+        shadowColor: ACTIVE(),
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.45,
         shadowRadius: 10,
@@ -71,13 +38,85 @@ function CenterButton({ onPress }: { onPress: () => void }) {
   );
 }
 
-export default function TabLayout() {
+/** Sidebar entries for the wide (website) layout. `route` is the tab route name. */
+const SIDE_NAV: { route: string; href: string; label: string; icon: (c: string) => React.ReactNode }[] = [
+  { route: 'index',       href: '/',            label: 'Overview',  icon: c => <LayoutDashboard size={18} color={c} /> },
+  { route: 'cashbook',    href: '/cashbook',    label: 'Cash Book', icon: c => <BookOpen size={18} color={c} /> },
+  { route: 'scheduled',   href: '/scheduled',   label: 'Scheduled', icon: c => <CalendarClock size={18} color={c} /> },
+  { route: 'expenses',    href: '/expenses',    label: 'Stats',     icon: c => <BarChart2 size={18} color={c} /> },
+  { route: 'goals-debts', href: '/goals-debts', label: 'Tabung',    icon: c => <Coins size={18} color={c} /> },
+  { route: 'accounts',    href: '/accounts',    label: 'Accounts',  icon: c => <Landmark size={18} color={c} /> },
+  { route: 'stats',       href: '/stats',       label: 'More',      icon: c => <LayoutGrid size={18} color={c} /> },
+];
+
+function SideNav({ state }: BottomTabBarProps) {
   const router = useRouter();
+  const { system, scopeIds, systemAccounts, scopeName } = useAppContext();
+  const current = state.routes[state.index]?.name;
+  const total = systemAccounts.filter(a => scopeIds.has(a.id)).reduce((s, a) => s + a.balance, 0);
 
   return (
+    <View style={{ width: 240, backgroundColor: T.white, borderRightWidth: 1, borderRightColor: T.line, paddingVertical: 20, paddingHorizontal: 14 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 6, marginBottom: 20 }}>
+        <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: T.brand, alignItems: 'center', justifyContent: 'center' }}>
+          <Wallet size={18} color={T.white} />
+        </View>
+        <Text style={{ fontSize: 18, fontWeight: '800', color: T.ink }}>BolehBudget</Text>
+      </View>
+
+      {/* Global scope: currency system + account — every page follows this */}
+      <View style={{ marginBottom: 12 }}>
+        <ScopePanel />
+      </View>
+
+      <View style={{ height: 6 }} />
+
+      <View style={{ gap: 2 }}>
+        {SIDE_NAV.map(item => {
+          const active = current === item.route;
+          return (
+            <TouchableOpacity
+              key={item.route}
+              onPress={() => router.navigate(item.href as any)}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 6, backgroundColor: active ? T.brandSoft : 'transparent' }}
+            >
+              {item.icon(active ? T.brandDark : T.muted)}
+              <Text style={{ fontSize: 14, fontWeight: active ? '700' : '500', color: active ? T.brandDark : T.ink2 }}>{item.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      <View style={{ flex: 1 }} />
+      <View style={{ backgroundColor: T.brand, borderRadius: 14, padding: 14 }}>
+        <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' }}>{scopeName}</Text>
+        <Text style={{ color: T.white, fontSize: 20, fontWeight: '800', marginTop: 4 }} numberOfLines={1} adjustsFontSizeToFit>{money(total, system)}</Text>
+      </View>
+    </View>
+  );
+}
+
+export default function TabLayout() {
+  useAppContext(); // re-render (tab bar colours) when the currency system changes
+  const isWide = useIsWide();
+  // "New entry" (sidebar) and the phone's + button both open the Income / Expense chooser
+  const [entryOpen, setEntryOpen] = useState(false);
+  // On wide screens the sidebar replaces the tab bar, so every tab is reachable from it.
+
+  return (
+    <>
     <Tabs
+      backBehavior="history"
+      tabBar={isWide ? props => <SideNav {...props} /> : undefined}
+      // Website layout: centre each page in a readable column beside the sidebar.
+      screenLayout={isWide ? ({ children }: { children: React.ReactNode }) => (
+        <View style={{ flex: 1, backgroundColor: T.page }}>
+          <View style={{ flex: 1, width: '100%', maxWidth: 1200, alignSelf: 'center' }}>{children}</View>
+        </View>
+      ) : undefined}
       screenOptions={{
-        tabBarActiveTintColor: ACTIVE,
+        tabBarPosition: isWide ? 'left' : 'bottom',
+        tabBarActiveTintColor: ACTIVE(),
         tabBarInactiveTintColor: INACTIVE,
         tabBarStyle: {
           backgroundColor: 'white',
@@ -94,25 +133,26 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Vault',
-          tabBarIcon: ({ color, size }) => <CreditCard size={size} color={color} />,
+          title: 'Overview',
+          tabBarIcon: ({ color, size }) => <LayoutDashboard size={size} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="expenses"
+        name="cashbook"
         options={{
-          title: 'Stats',
-          tabBarIcon: ({ color, size }) => <BarChart2 size={size} color={color} />,
+          title: 'Cash Book',
+          tabBarIcon: ({ color, size }) => <BookOpen size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="add"
-        options={{
+        // expo-router forbids href together with tabBarButton, so pick one per layout
+        options={isWide ? { title: '', href: null } : {
           title: '',
           tabBarLabel: () => null,
           tabBarIcon: () => null,
           tabBarButton: () => (
-            <CenterButton onPress={() => router.navigate('/(tabs)/expenses')} />
+            <CenterButton onPress={() => setEntryOpen(true)} />
           ),
         }}
       />
@@ -120,16 +160,24 @@ export default function TabLayout() {
         name="goals-debts"
         options={{
           title: 'Tabung',
-          tabBarIcon: ({ color, size }) => <TabungIcon size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Coins size={size} color={color} />,
         }}
       />
+      {/* Phones: "Account" hub tab; its ⚙ Settings button opens More (still in the desktop sidebar) */}
       <Tabs.Screen
-        name="stats"
+        name="wallet"
         options={{
-          title: 'More',
-          tabBarIcon: ({ color, size }) => <LayoutGrid size={size} color={color} />,
+          title: 'Account',
+          tabBarIcon: ({ color, size }) => <Wallet size={size} color={color} />,
         }}
       />
+      <Tabs.Screen name="stats" options={{ title: 'More', href: null }} />
+      {/* Not in the phone tab bar; reachable from More / the + button / the sidebar */}
+      <Tabs.Screen name="expenses" options={{ title: 'Stats', href: null }} />
+      <Tabs.Screen name="accounts" options={{ title: 'Accounts', href: null }} />
+      <Tabs.Screen name="scheduled" options={{ title: 'Scheduled', href: null }} />
     </Tabs>
+    <NewEntryPicker open={entryOpen} onClose={() => setEntryOpen(false)} />
+    </>
   );
 }

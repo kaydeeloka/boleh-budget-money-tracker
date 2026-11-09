@@ -1,7 +1,7 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { BarChart2, ChevronLeft, ChevronRight, TrendingDown, TrendingUp, Calendar } from 'lucide-react-native';
-import { Expense, BankAccount, BudgetCategory } from '../types';
+import { Expense, BankAccount, BudgetCategory } from '@/src/types';
 
 interface StatsAndCalendarProps {
   expenses: Expense[];
