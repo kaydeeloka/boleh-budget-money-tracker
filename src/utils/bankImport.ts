@@ -13,7 +13,7 @@ export interface ParsedTxn {
   note: string;
   balance?: number;      // 잔액 after this transaction, if the file has it
   importRef: string;     // stable key so re-importing the same file is a no-op
-  category?: string;     // from a Category column (BolehBudget exports), if present
+  category?: string;     // from a Category column (Saku exports), if present
   subcategory?: string;
 }
 
@@ -67,7 +67,7 @@ function findHeaderRow(rows: Cell[][]): number {
     const cells = r.map(clean).filter(Boolean);
     if (cells.length < 4) return false;
     const hasDate = cells.some(c => /거래일|일시|일자|날짜|^date$/i.test(c));
-    // Korean bank exports (입금/출금) or BolehBudget's own export (Cash In / Cash Out)
+    // Korean bank exports (입금/출금) or Saku's own export (Cash In / Cash Out)
     const hasInOut = cells.some(c => c.startsWith('입금') || c.includes('맡기신') || /^cashin$/i.test(c)) &&
                      cells.some(c => c.startsWith('출금') || c.includes('찾으신') || /^cashout$/i.test(c));
     const hasAmountAndKind = cells.some(c => c.includes('거래금액')) && cells.some(c => c === '구분' || c.includes('입출구분'));

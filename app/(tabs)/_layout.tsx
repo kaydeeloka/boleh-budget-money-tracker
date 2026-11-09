@@ -9,7 +9,7 @@ import { ScopePanel } from '@/src/features/navigation/ScopePicker';
 import NewEntryPicker from '@/src/features/transactions/NewEntryPicker';
 
 
-const ACTIVE = () => T.green; // follows KRW green / MYR purple
+const ACTIVE = () => T.green; // follows the selected currency theme
 const INACTIVE = '#a8a29e';
 
 function CenterButton({ onPress }: { onPress: () => void }) {
@@ -61,7 +61,10 @@ function SideNav({ state }: BottomTabBarProps) {
         <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: T.brand, alignItems: 'center', justifyContent: 'center' }}>
           <Wallet size={18} color={T.white} />
         </View>
-        <Text style={{ fontSize: 18, fontWeight: '800', color: T.ink }}>BolehBudget</Text>
+        <View>
+          <Text style={{ fontSize: 18, fontWeight: '800', color: T.ink }}>Saku</Text>
+          <Text style={{ fontSize: 9, color: T.muted, marginTop: 1 }}>Track Every Won &amp; Ringgit.</Text>
+        </View>
       </View>
 
       {/* Global scope: currency system + account — every page follows this */}

@@ -27,6 +27,27 @@ const INITIAL_BORROW_RECORDS: BorrowRecord[] = [
   { id: 'bor-2', type: 'lend', person: 'Sarah (Hana Buddy)', amount: 60, repaidAmount: 0, currency: 'MYR', date: new Date(Date.now() - 86400000 * 5).toISOString().split('T')[0], note: 'Milo packet & Malaysian snack imports', status: 'unpaid' },
 ];
 
+const DEMO_BUDGETS: Budget[] = [
+  { id: 'demo-budget-food', category: 'Food & Dining', amount: 300000, currency: 'KRW', startMonth: toDateStr(new Date()).slice(0, 7), limits: [{ from: toDateStr(new Date()).slice(0, 7), amount: 300000 }] },
+  { id: 'demo-budget-transport', category: 'Transport', amount: 120000, currency: 'KRW', startMonth: toDateStr(new Date()).slice(0, 7), limits: [{ from: toDateStr(new Date()).slice(0, 7), amount: 120000 }] },
+];
+
+const DEMO_SCHEDULES: Schedule[] = [
+  {
+    id: 'demo-schedule-rent',
+    type: 'expense',
+    amount: 450000,
+    currency: 'KRW',
+    category: 'Bills & Rent',
+    accountId: 'acc-hana',
+    note: 'Monthly room rent',
+    frequency: 'monthly',
+    startDate: toDateStr(new Date()),
+    nextDate: toDateStr(new Date(Date.now() + 14 * 86400000)),
+    active: true,
+  },
+];
+
 interface AppContextType {
   exchangeRate: number;
   setExchangeRate: (rate: number) => void;
@@ -76,6 +97,7 @@ interface AppContextType {
   handleUpdateAccount: (accountId: string, patch: { name?: string; bankName?: string; cardColor?: string }) => void;
   handleUseCalculatedAmount: (amount: number, currency: Currency) => void;
   handleImportTransactions: (accountId: string, rows: Omit<Expense, 'id' | 'accountId'>[], newBalance?: number) => number;
+  loadDemoData: () => void;
   /** Currency "system" the whole app is showing (KRW or MYR). */
   system: Currency;
   setSystem: (c: Currency) => void;
@@ -107,7 +129,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [rateLoading, setRateLoading] = useState(false);
   const [system, setSystemState] = useState<Currency>('KRW');
   const [scopeAccountId, setScopeAccountIdState] = useState<string>('all');
-  applySystemTheme(system); // KRW = green, MYR = purple; children read T.* during this same render
+  applySystemTheme(system); // KRW = green, MYR = dark pastel purple; children read T.* during this same render
+
+  const loadDemoData = () => {
+    setExchangeRateState(3.32);
+    setAccounts(INITIAL_ACCOUNTS.map(account => ({ ...account })));
+    setExpenses(INITIAL_EXPENSES.map(expense => ({ ...expense })));
+    setGoals(INITIAL_GOALS.map(goal => ({ ...goal })));
+    setRecords(INITIAL_BORROW_RECORDS.map(record => ({ ...record })));
+    setCategories(INITIAL_CATEGORIES.map(category => ({ ...category, subcategories: category.subcategories ? [...category.subcategories] : undefined })));
+    setBudgets(DEMO_BUDGETS.map(budget => ({ ...budget, limits: budget.limits?.map(limit => ({ ...limit })) })));
+    setSchedules(DEMO_SCHEDULES.map(schedule => ({ ...schedule })));
+    setSystemState('KRW');
+    setScopeAccountIdState('all');
+  };
 
   const fetchLiveRate = async () => {
     if (rateLoading) return;
@@ -530,7 +565,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       handleAddGoal, handleAddContribution, handleDeleteGoal,
       handleAddBorrowRecord, handleRecordRepayment, handleRecordCollection,
       handleUpdateAccountNo, handleUpdateAccount, handleUseCalculatedAmount,
-      handleImportTransactions, handleTransfer,
+      handleImportTransactions, handleTransfer, loadDemoData,
       budgets, handleAddBudget, handleUpdateBudget, handleDeleteBudget,
       schedules, handleAddSchedule, handleUpdateSchedule, handleDeleteSchedule,
       system, setSystem, systemAccounts,

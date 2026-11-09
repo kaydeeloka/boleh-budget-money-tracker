@@ -3,7 +3,7 @@ import { Platform, useWindowDimensions } from 'react-native';
 
 /** Shared colours for the ledger-style pages (Cash Book, Calendar) and the web sidebar. */
 // Cash-book layout (flat app bar, white tables, square-ish buttons). Brand colours follow the currency system:
-// green for KRW, purple for MYR (see applySystemTheme). Cash In stays green and Cash Out red in both.
+// green for KRW, dark pastel purple for MYR (see applySystemTheme). Cash In stays green and Cash Out red in both.
 export const T = {
   brand:     '#15803d', // app bar
   brandDark: '#166534', // status-bar strip
@@ -26,10 +26,10 @@ export const T = {
 };
 
 const BRAND = {
-  KRW: { brand: '#15803d', brandDark: '#166534', brandMid: '#16a34a', brandSoft: '#dcfce7', green: '#22c55e' },
-  MYR: { brand: '#6d28d9', brandDark: '#5b21b6', brandMid: '#7c3aed', brandSoft: '#ede9fe', green: '#8b5cf6' },
+  KRW: { brand: '#15803d', brandDark: '#166534', brandMid: '#16a34a', brandSoft: '#dcfce7', green: '#22c55e', green50: '#f0fdf4' },
+  MYR: { brand: '#6f5a8e', brandDark: '#594573', brandMid: '#806aa3', brandSoft: '#eeeaf4', green: '#9a88b8', green50: '#f4f1f7' },
 };
-/** Switch the app's brand colours for the selected currency system (KRW green / MYR purple). */
+/** Switch the app's brand colours for the selected currency system. */
 export function applySystemTheme(system: 'KRW' | 'MYR') {
   Object.assign(T, BRAND[system]);
 }

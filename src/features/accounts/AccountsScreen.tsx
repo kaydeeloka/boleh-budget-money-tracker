@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ChevronLeft, Trash2, Plus, CreditCard, Check, ArrowLeftRight } from 'lucide-react-native';
+import { ChevronLeft, Trash2, Plus, CreditCard, Check, ArrowLeftRight, Pencil } from 'lucide-react-native';
 import { useAppContext } from '@/src/context/AppContext';
 import { Currency } from '@/src/types';
 import { ScopeButton } from '@/src/features/navigation/ScopePicker';
@@ -103,18 +103,11 @@ export default function AccountsScreen() {
             <Text style={{ fontSize: 11, color: '#a8a29e', marginTop: 1 }}>{accounts.length} {system} account{accounts.length !== 1 ? 's' : ''} linked</Text>
           </View>
           <TouchableOpacity
-            onPress={() => setTransferOpen(true)}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1.5, borderColor: T.brand, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 12 }}
-          >
-            <ArrowLeftRight size={14} color={T.brand} />
-            <Text style={{ color: T.brand, fontWeight: '700', fontSize: 12 }}>Transfer</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
             onPress={() => setShowAddForm(v => !v)}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: T.brand, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 }}
           >
             <Plus size={14} color="white" />
-            <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>Add Bank</Text>
+            <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>Add Account</Text>
           </TouchableOpacity>
         </View>
         {!isWide && (
@@ -178,7 +171,7 @@ export default function AccountsScreen() {
         {/* Account list */}
         {accounts.length === 0 ? (
           <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-            <Text style={{ color: '#a8a29e', fontSize: 14 }}>No {system} accounts yet. Tap Add Bank to get started.</Text>
+            <Text style={{ color: '#a8a29e', fontSize: 14 }}>No {system} accounts yet. Tap Add Account to get started.</Text>
           </View>
         ) : (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>
@@ -190,10 +183,18 @@ export default function AccountsScreen() {
                 footer={
                   <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'flex-end' }}>
                     <TouchableOpacity
-                      onPress={() => { setEditingId(editingId === a.id ? null : a.id); setEditBalanceVal(a.balance.toString()); setEditAccountNoVal(a.accountNo ?? ''); setEditNameVal(a.name); setEditBankVal(a.bankName); setEditColorVal(cardColorFor(a)); }}
-                      style={{ backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 7 }}
+                      accessibilityLabel={`Transfer from ${a.name}`}
+                      onPress={() => setTransferOpen(true)}
+                      style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}
                     >
-                      <Text style={{ fontSize: 12, fontWeight: '700', color: 'white' }}>{editingId === a.id ? 'Close' : 'Adjust'}</Text>
+                      <ArrowLeftRight size={14} color="white" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      accessibilityLabel={`${editingId === a.id ? 'Close editor for' : 'Edit'} ${a.name}`}
+                      onPress={() => { setEditingId(editingId === a.id ? null : a.id); setEditBalanceVal(a.balance.toString()); setEditAccountNoVal(a.accountNo ?? ''); setEditNameVal(a.name); setEditBankVal(a.bankName); setEditColorVal(cardColorFor(a)); }}
+                      style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: editingId === a.id ? T.brand : 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      {editingId === a.id ? <Text style={{ fontSize: 12, fontWeight: '700', color: 'white' }}>×</Text> : <Pencil size={14} color="white" />}
                     </TouchableOpacity>
                     {accounts.length > 1 && (
                       // Two-step delete (Alert.alert does nothing on web)

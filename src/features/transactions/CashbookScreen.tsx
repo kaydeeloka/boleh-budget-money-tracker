@@ -235,7 +235,7 @@ export default function CashBookScreen() {
   // Monthly: calendar on top, tapped date's entries below
   const excelRow = (
     <>
-      {/* Excel: export this period / import a bank or BolehBudget file */}
+      {/* Excel: export this period / import a bank or Saku file */}
       <View style={{ flexDirection: 'row', gap: 10, padding: 10, borderTopWidth: 1, borderTopColor: T.line }}>
         <TouchableOpacity onPress={doExport} disabled={busy} style={{ flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, borderWidth: 1.5, borderColor: T.in, borderRadius: 6, paddingVertical: 10, backgroundColor: T.white }}>
           <Download size={16} color={T.in} />
@@ -482,7 +482,7 @@ export default function CashBookScreen() {
     try {
       setBusy(true);
       const label = periodLabel(period, anchor);
-      await exportCashBook(rows, systemAccounts, system, { periodLabel: label, totalIn, totalOut, opening, closing }, `BolehBudget_${system}_${range[0]}_${range[1]}`);
+      await exportCashBook(rows, systemAccounts, system, { periodLabel: label, totalIn, totalOut, opening, closing }, `Saku_${system}_${range[0]}_${range[1]}`);
       setExcelMsg({ text: `Exported ${rows.length} entr${rows.length === 1 ? 'y' : 'ies'} (${label}).` });
     } catch (e: any) {
       setExcelMsg({ text: e?.message ?? 'Export failed.', error: true });

@@ -1,5 +1,7 @@
 
-# Boleh Budget
+# Saku
+
+**Track Every Won & Ringgit.**
 
 ## Architecture
 
@@ -67,3 +69,15 @@ A safe migration path is:
 For a first release, Supabase + Postgres + EAS is the lowest-operations choice.
 Use server-side migrations, daily backups, environment-specific projects, and
 never commit production keys to the repository.
+
+### Deploying the web app to Vercel
+
+The web build is configured in `vercel.json`. From the repository root, deploy
+the current branch as a production deployment with:
+
+```powershell
+npx vercel --prod
+```
+
+Alternatively, push the branch configured as the Vercel production branch
+(normally `main`). Vercel will run `npm run build:web` and publish `dist/`.

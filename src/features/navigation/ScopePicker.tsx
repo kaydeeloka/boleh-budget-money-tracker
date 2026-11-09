@@ -9,8 +9,13 @@ import { T, money } from '@/src/theme';
 /** Currency system switch (₩ KRW / RM MYR) + account list. Drives every page. */
 export function ScopePanel({ onPicked, dark }: { onPicked?: () => void; dark?: boolean }) {
   const { system, setSystem, systemAccounts, scopeAccountId, setScopeAccountId } = useAppContext();
+  const totalBalance = systemAccounts.reduce((total, account) => total + account.balance, 0);
   const options: { id: string; name: string; sub: string }[] = [
-    { id: 'all', name: 'All Accounts', sub: `${systemAccounts.length} ${system} account${systemAccounts.length !== 1 ? 's' : ''}` },
+    {
+      id: 'all',
+      name: 'All Accounts',
+      sub: `${systemAccounts.length} ${system} account${systemAccounts.length !== 1 ? 's' : ''} · ${money(totalBalance, system)}`,
+    },
     ...systemAccounts.map(a => ({ id: a.id, name: a.name, sub: `${a.bankName} · ${money(a.balance, a.currency)}` })),
   ];
   return (
@@ -36,7 +41,12 @@ export function ScopePanel({ onPicked, dark }: { onPicked?: () => void; dark?: b
         <Dropdown
           compact
           title={`${system} account`}
-          options={options.map(o => ({ label: o.id === 'all' ? `All Accounts (${systemAccounts.length})` : o.name, value: o.id }))}
+          options={options.map(o => ({
+            label: o.id === 'all'
+              ? `All Accounts (${systemAccounts.length}) · ${money(totalBalance, system)}`
+              : `${o.name} · ${o.sub.split(' · ').pop()}`,
+            value: o.id,
+          }))}
           selectedValue={scopeAccountId}
           onValueChange={id => { setScopeAccountId(id); onPicked?.(); }}
         />

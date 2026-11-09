@@ -22,7 +22,7 @@ export async function exportCashBook(
   const accName = (id: string) => accounts.find(a => a.id === id)?.name ?? '';
   const sorted = [...rows].sort((a, b) => a.date.localeCompare(b.date)); // oldest first, like a bank statement
   const aoa: (string | number)[][] = [
-    [`BolehBudget Cash Book — ${summary.periodLabel} (${currency})`],
+    [`Saku Cash Book — ${summary.periodLabel} (${currency})`],
     [],
     ['Date', 'Remark', 'Category', 'Subcategory', 'Account', 'Cash In', 'Cash Out'],
     ...sorted.map(e => [
