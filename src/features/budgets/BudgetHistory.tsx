@@ -3,7 +3,7 @@ import { Modal, Pressable, View, Text, TouchableOpacity, ScrollView } from 'reac
 import { X } from 'lucide-react-native';
 import { useAppContext } from '@/src/context/AppContext';
 import { Budget } from '@/src/types';
-import { T, useIsWide, money, toDateStr, MONTHS_LONG } from '@/src/theme';
+import { T, useIsWide, money, toDateStr, fmtDate, MONTHS_LONG } from '@/src/theme';
 import Dropdown from '@/src/components/ui/Dropdown';
 import { usageFor, STATUS } from './BudgetRow';
 
@@ -22,7 +22,9 @@ export default function BudgetHistory({ open, onClose, initialId }: { open: bool
   const isWide = useIsWide();
   const budgets = all.filter(b => b.currency === system);
   const [id, setId] = useState<string>('');
+  const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
   useEffect(() => { if (open) setId(initialId && budgets.some(b => b.id === initialId) ? initialId : budgets[0]?.id ?? ''); }, [open, initialId]);
+  useEffect(() => { setExpandedMonth(null); }, [id]);
   const budget = budgets.find(b => b.id === id);
 
   const months = useMemo(() => {
@@ -46,6 +48,10 @@ export default function BudgetHistory({ open, onClose, initialId }: { open: bool
   const avg = finished.length ? finished.reduce((t, m) => t + m.spent, 0) / finished.length : 0;
   const fmt = (n: number) => money(n, system);
   const label = (k: string) => { const [y, m] = k.split('-').map(Number); return `${MONTHS_LONG[m - 1].slice(0, 3)} ${y}`; };
+  const transactionsForMonth = (month: string) => expenses
+    .filter(e => e.type !== 'income' && !e.transferId && e.currency === budget?.currency && scopeIds.has(e.accountId) && e.date.startsWith(month))
+    .filter(e => !budget || budget.category === 'all' || e.category === budget.category)
+    .sort((a, b) => b.date.localeCompare(a.date));
 
   return (
     <Modal visible={open} transparent animationType={isWide ? 'fade' : 'slide'} onRequestClose={onClose}>
@@ -86,13 +92,19 @@ export default function BudgetHistory({ open, onClose, initialId }: { open: bool
               <ScrollView style={{ flex: 1 }}>
                 {months.map((m, i) => {
                   const st = STATUS[m.status];
+                  const expanded = expandedMonth === m.key;
+                  const transactions = expanded ? transactionsForMonth(m.key) : [];
                   return (
-                    <View key={m.key} style={{ paddingHorizontal: 16, paddingVertical: 11, gap: 6, backgroundColor: i % 2 ? '#fcfcfb' : T.white, borderBottomWidth: 1, borderBottomColor: T.line2, opacity: m.before ? 0.7 : 1 }}>
+                    <TouchableOpacity
+                      key={m.key}
+                      accessibilityLabel={`Show ${label(m.key)} budget transactions`}
+                      onPress={() => setExpandedMonth(expanded ? null : m.key)}
+                      style={{ paddingHorizontal: 16, paddingVertical: 11, gap: 6, backgroundColor: i % 2 ? '#fcfcfb' : T.white, borderBottomWidth: 1, borderBottomColor: T.line2, opacity: m.before ? 0.7 : 1 }}
+                    >
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                         <Text style={{ flex: 1, fontSize: 15, fontWeight: '700', color: T.ink }}>
                           {label(m.key)}
                           {m.current ? <Text style={{ fontSize: 11, fontWeight: '600', color: T.muted }}>  · this month</Text> : null}
-                          {m.before ? <Text style={{ fontSize: 11, fontWeight: '600', color: T.muted }}>  · before budget</Text> : null}
                         </Text>
                         <st.Icon size={13} color={st.color} />
                         <Text style={{ fontSize: 11, fontWeight: '800', color: st.color }}>{st.label}</Text>
@@ -108,7 +120,21 @@ export default function BudgetHistory({ open, onClose, initialId }: { open: bool
                           {m.left < 0 ? `Over by ${fmt(-m.left)}` : `Saved ${fmt(m.left)}`}
                         </Text>
                       </View>
-                    </View>
+                      {expanded && (
+                        <View style={{ marginTop: 4, borderTopWidth: 1, borderTopColor: T.line, paddingTop: 8, gap: 6 }}>
+                          <Text style={{ fontSize: 11, color: T.muted, fontWeight: '700' }}>Transactions this month</Text>
+                          {transactions.length === 0 ? (
+                            <Text style={{ fontSize: 12, color: T.faint }}>No transactions for this budget yet.</Text>
+                          ) : transactions.map(transaction => (
+                            <View key={transaction.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                              <Text style={{ width: 64, fontSize: 11, color: T.muted }}>{fmtDate(transaction.date)}</Text>
+                              <Text style={{ flex: 1, fontSize: 12, color: T.ink2 }} numberOfLines={1}>{transaction.note || transaction.category}</Text>
+                              <Text style={{ fontSize: 12, fontWeight: '700', color: T.out }}>{fmt(transaction.amount)}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                    </TouchableOpacity>
                   );
                 })}
               </ScrollView>

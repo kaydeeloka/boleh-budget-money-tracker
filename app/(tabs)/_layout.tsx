@@ -114,7 +114,7 @@ export default function TabLayout() {
       // Website layout: centre each page in a readable column beside the sidebar.
       screenLayout={isWide ? ({ children }: { children: React.ReactNode }) => (
         <View style={{ flex: 1, backgroundColor: T.page }}>
-          <View style={{ flex: 1, width: '100%', maxWidth: 1200, alignSelf: 'center' }}>{children}</View>
+          <View style={{ flex: 1, width: '100%' }}>{children}</View>
         </View>
       ) : undefined}
       screenOptions={{
