@@ -4,7 +4,7 @@ import { dueRuns } from '../schedules';
 import { toDateStr, applySystemTheme } from '../theme';
 import { DEFAULT_CATEGORIES, migrateCategory } from '../categories';
 import { STORAGE_KEYS, storage } from '../data/storage';
-import type { DriveSnapshot } from '../data/googleDrive';
+import type { Snapshot } from '../data/sheetSync';
 
 const INITIAL_CATEGORIES: BudgetCategory[] = DEFAULT_CATEGORIES;
 
@@ -101,7 +101,7 @@ interface AppContextType {
   loadDemoData: () => void;
   clearDemoData: () => void;
   isDemoData: boolean;
-  restoreDriveSnapshot: (snapshot: DriveSnapshot) => void;
+  restoreSnapshot: (snapshot: Snapshot) => void;
   /** Currency "system" the whole app is showing (KRW or MYR). */
   system: Currency;
   setSystem: (c: Currency) => void;
@@ -164,10 +164,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setIsDemoData(false);
   };
 
-  const restoreDriveSnapshot = (snapshot: DriveSnapshot) => {
+  const restoreSnapshot = (snapshot: Snapshot) => {
     const read = <T,>(key: string, fallback: T): T => {
       if (!snapshot[key]) return fallback;
-      return JSON.parse(snapshot[key]) as T;
+      try { return JSON.parse(snapshot[key]) as T; } catch { return fallback; }
     };
     setExchangeRateState(Number(snapshot[STORAGE_KEYS.rate]) || 3.32);
     setAccounts(read(STORAGE_KEYS.accounts, []));
@@ -605,7 +605,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       handleAddGoal, handleAddContribution, handleDeleteGoal,
       handleAddBorrowRecord, handleRecordRepayment, handleRecordCollection,
       handleUpdateAccountNo, handleUpdateAccount, handleUseCalculatedAmount,
-      handleImportTransactions, handleTransfer, loadDemoData, clearDemoData, isDemoData, restoreDriveSnapshot,
+      handleImportTransactions, handleTransfer, loadDemoData, clearDemoData, isDemoData, restoreSnapshot,
       budgets, handleAddBudget, handleUpdateBudget, handleDeleteBudget,
       schedules, handleAddSchedule, handleUpdateSchedule, handleDeleteSchedule,
       system, setSystem, systemAccounts,

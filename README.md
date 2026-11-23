@@ -82,10 +82,11 @@ npx vercel --prod
 Alternatively, push the branch configured as the Vercel production branch
 (normally `main`). Vercel will run `npm run build:web` and publish `dist/`.
 
-### Google Drive backup
+### Excel online (Google Sheets) sync
 
-The More screen can save or restore a visible `saku-data.json` file in the
-signed-in user's Google Drive. Configure the three
-`EXPO_PUBLIC_GOOGLE_*_CLIENT_ID` values from Google Cloud OAuth clients before
-using these actions. Saving and loading are manual; loading a backup replaces
-the current device data after confirmation.
+More → Tools → **Save to Excel online** writes the app's data to a Google Sheet through
+a Google Apps Script Web app (`apps-script/Code.gs`): a Summary tab, one Cash Book tab per
+account (Date / Remark / Category / Subcategory / Account / Cash In / Cash Out), plus Goals,
+Debts, Budgets, Scheduled and Categories. A hidden `_data` tab holds a lossless copy used by
+**Load from Excel online**. Edits typed into the sheet are overwritten on the next save and are
+not read back. Paste the Web app URL and the script's `SECRET` into **Excel online setup**.

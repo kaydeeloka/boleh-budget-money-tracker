@@ -1,81 +1,65 @@
 import React, { useState } from 'react';
-import { Alert, View, Text, ScrollView } from 'react-native';
+import { Alert, View, Text, ScrollView, Modal, TextInput, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
 import {
-  LayoutGrid, BookOpen, CalendarClock, CalendarDays, TrendingDown, ArrowLeftRight, Tag, CreditCard, Target, HandCoins, ChevronRight, GraduationCap, Trash2, CloudUpload, CloudDownload,
+  LayoutGrid, BookOpen, CalendarClock, CalendarDays, TrendingDown, ArrowLeftRight, Tag, CreditCard, Target, HandCoins, ChevronRight, GraduationCap, Trash2, Sheet, CloudUpload, CloudDownload,
 } from 'lucide-react-native';
 import { T } from '@/src/theme';
 import { useAppContext } from '@/src/context/AppContext';
-import { downloadSnapshot, uploadSnapshot } from '@/src/data/googleDrive';
+import { getSheetConfig, setSheetConfig, saveToSheet, loadFromSheet } from '@/src/data/sheetSync';
 import { Page, AppBar, Body, Section, Row } from '@/src/components/ui/Ledger';
 import CategoryManager from '@/src/features/insights/CategoryManager';
-
-WebBrowser.maybeCompleteAuthSession();
 
 type Item = { label: string; subtitle: string; icon: React.ReactNode; href?: string; onPress?: () => void };
 
 export default function MoreScreen() {
   const router = useRouter();
-  const { loadDemoData, clearDemoData, isDemoData, restoreDriveSnapshot } = useAppContext();
+  const { loadDemoData, clearDemoData, isDemoData, restoreSnapshot } = useAppContext();
   const [catsOpen, setCatsOpen] = useState(false);
-  const [driveBusy, setDriveBusy] = useState(false);
-  const [request, , promptAsync] = Google.useAuthRequest({
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    scopes: ['https://www.googleapis.com/auth/drive.file'],
-  });
+  const [busy, setBusy] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(false);
+  const [sheetUrl, setSheetUrl] = useState('');
+  const [sheetSecret, setSheetSecret] = useState('');
 
-  const getDriveToken = async () => {
-    if (!request) throw new Error('Google Drive is not configured. Add the Expo Google client IDs first.');
-    const result = await promptAsync();
-    if (result.type !== 'success' || !result.authentication?.accessToken) throw new Error('Google sign-in was cancelled or did not return a Drive token.');
-    return result.authentication.accessToken;
+  const openSetup = async () => {
+    const c = await getSheetConfig();
+    setSheetUrl(c.url);
+    setSheetSecret(c.secret);
+    setSetupOpen(true);
   };
-
-  const saveToDrive = async () => {
-    setDriveBusy(true);
+  const saveSetup = async () => {
+    await setSheetConfig(sheetUrl, sheetSecret);
+    setSetupOpen(false);
+  };
+  const toSheet = async () => {
+    setBusy(true);
     try {
-      await uploadSnapshot(await getDriveToken());
-      Alert.alert('Saved to Google Drive', 'Your data is saved as saku-data.json in My Drive.');
-    } catch (error) {
-      Alert.alert('Could not save to Google Drive', error instanceof Error ? error.message : 'Please try again.');
-    } finally {
-      setDriveBusy(false);
-    }
+      const r = await saveToSheet();
+      Alert.alert('Saved to Excel online', `Updated ${r.tabs ?? ''} tabs in your Google Sheet.`);
+    } catch (e) {
+      Alert.alert('Could not save', e instanceof Error ? e.message : 'Please try again.');
+    } finally { setBusy(false); }
   };
-
-  const loadFromDrive = async () => {
-    Alert.alert(
-      'Load from Google Drive?',
-      'This replaces the data currently stored on this device with the Drive backup.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Load backup',
-          style: 'destructive',
-          onPress: async () => {
-            setDriveBusy(true);
-            try {
-              const snapshot = await downloadSnapshot(await getDriveToken());
-              if (!snapshot) {
-                Alert.alert('No backup found', 'Save your local data to Google Drive first.');
-              } else {
-                restoreDriveSnapshot(snapshot);
-                Alert.alert('Loaded from Google Drive', 'The Drive backup is now active on this device.');
-              }
-            } catch (error) {
-              Alert.alert('Could not load from Google Drive', error instanceof Error ? error.message : 'Please try again.');
-            } finally {
-              setDriveBusy(false);
-            }
-          },
+  const fromSheet = () => Alert.alert(
+    'Load from Excel online?',
+    'This replaces the data on this device with the last data saved to the sheet.',
+    [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Load', style: 'destructive',
+        onPress: async () => {
+          setBusy(true);
+          try {
+            const snap = await loadFromSheet();
+            if (!snap) Alert.alert('Nothing to load', 'Save to Excel online first.');
+            else { restoreSnapshot(snap); Alert.alert('Loaded', 'The sheet data is now active on this device.'); }
+          } catch (e) {
+            Alert.alert('Could not load', e instanceof Error ? e.message : 'Please try again.');
+          } finally { setBusy(false); }
         },
-      ],
-    );
-  };
+      },
+    ],
+  );
   const ic = (Icon: React.ComponentType<any>, color: string) => (
     <View style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: T.line2, alignItems: 'center', justifyContent: 'center' }}>
       <Icon size={18} color={color} />
@@ -119,17 +103,18 @@ export default function MoreScreen() {
           ),
         },
         {
-          label: driveBusy ? 'Syncing…' : 'Save to Google Drive',
-          subtitle: 'Save a visible saku-data.json backup in My Drive',
+          label: busy ? 'Working...' : 'Save to Excel online',
+          subtitle: 'Update your Google Sheet: a tab per account, goals, debts, budgets',
           icon: ic(CloudUpload, '#0284c7'),
-          onPress: saveToDrive,
+          onPress: toSheet,
         },
         {
-          label: driveBusy ? 'Syncing…' : 'Load from Google Drive',
-          subtitle: 'Replace this device’s data with your Drive backup',
+          label: 'Load from Excel online',
+          subtitle: 'Replace this device\u2019s data with what is in the sheet',
           icon: ic(CloudDownload, '#0284c7'),
-          onPress: loadFromDrive,
+          onPress: fromSheet,
         },
+        { label: 'Excel online setup', subtitle: 'Paste your Apps Script Web app URL and key', icon: ic(Sheet, '#0284c7'), onPress: openSetup },
         ...(isDemoData ? [{
           label: 'Start using my own data',
           subtitle: 'Remove the test data and start with an empty app',
@@ -185,6 +170,22 @@ export default function MoreScreen() {
           </Section>
         </Body>
       </ScrollView>
+      <Modal visible={setupOpen} transparent animationType="fade" onRequestClose={() => setSetupOpen(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: T.white, borderRadius: 12, padding: 16, gap: 10, maxWidth: 520, width: '100%', alignSelf: 'center' }}>
+            <Text style={{ fontSize: 17, fontWeight: '800', color: T.ink }}>Excel online setup</Text>
+            <Text style={{ fontSize: 12, color: T.muted }}>Stored on this device only. See apps-script/Code.gs for the setup steps.</Text>
+            <TextInput value={sheetUrl} onChangeText={setSheetUrl} placeholder="Web app URL (https://script.google.com/macros/s/.../exec)" autoCapitalize="none" autoCorrect={false}
+              style={{ borderWidth: 1, borderColor: T.line, borderRadius: 8, padding: 10, color: T.ink }} />
+            <TextInput value={sheetSecret} onChangeText={setSheetSecret} placeholder="Key (SECRET from the script)" autoCapitalize="none" autoCorrect={false} secureTextEntry
+              style={{ borderWidth: 1, borderColor: T.line, borderRadius: 8, padding: 10, color: T.ink }} />
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 16, marginTop: 4 }}>
+              <TouchableOpacity onPress={() => setSetupOpen(false)}><Text style={{ color: T.muted, fontWeight: '700' }}>Cancel</Text></TouchableOpacity>
+              <TouchableOpacity onPress={saveSetup}><Text style={{ color: T.brandMid, fontWeight: '800' }}>Save</Text></TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       <CategoryManager open={catsOpen} onClose={() => setCatsOpen(false)} />
     </Page>
   );
