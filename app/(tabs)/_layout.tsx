@@ -6,6 +6,7 @@ import { LayoutDashboard, CreditCard, BarChart2, Plus, LayoutGrid, BookOpen, Lan
 import { useAppContext } from '@/src/context/AppContext';
 import { T, useIsWide, money } from '@/src/theme';
 import { ScopePanel } from '@/src/features/navigation/ScopePicker';
+import SheetStatusChip from '@/src/features/navigation/SheetStatusChip';
 import NewEntryPicker from '@/src/features/transactions/NewEntryPicker';
 
 
@@ -91,6 +92,7 @@ function SideNav({ state }: BottomTabBarProps) {
       </View>
 
       <View style={{ flex: 1 }} />
+      <View style={{ marginBottom: 10, alignItems: 'flex-start' }}><SheetStatusChip /></View>
       <View style={{ backgroundColor: T.brand, borderRadius: 14, padding: 14 }}>
         <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' }}>{scopeName}</Text>
         <Text style={{ color: T.white, fontSize: 20, fontWeight: '800', marginTop: 4 }} numberOfLines={1} adjustsFontSizeToFit>{money(total, system)}</Text>

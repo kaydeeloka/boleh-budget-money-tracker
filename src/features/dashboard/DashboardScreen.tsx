@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import AddFab from '@/src/features/transactions/AddFab';
-import { Alert, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LayoutDashboard, ArrowLeftRight, ChevronRight } from 'lucide-react-native';
 import { useAppContext } from '@/src/context/AppContext';
@@ -12,6 +12,8 @@ import BudgetHistory from '@/src/features/budgets/BudgetHistory';
 import PwaInstallButton from '@/src/features/dashboard/PwaInstallButton';
 import { cardColorFor } from '@/src/features/accounts/BankCard';
 import { T, money, toDateStr, fmtDate, MONTHS_LONG, useIsWide } from '@/src/theme';
+import SheetStatusChip from '@/src/features/navigation/SheetStatusChip';
+import { dialog } from '@/src/utils/dialog';
 import { Page, AppBar, Body, Section, Btn } from '@/src/components/ui/Ledger';
 
 /** 1234567 → "1.2M", 16800 → "16.8k" (₩) ; RM keeps decimals */
@@ -153,7 +155,7 @@ export default function OverviewTab() {
         icon={<LayoutDashboard size={20} color="rgba(255,255,255,0.85)" />}
         title="Overview"
         subtitle={`${system} · ${scopeName}`}
-        right={<PwaInstallButton />}
+        right={<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}><SheetStatusChip onDark /><PwaInstallButton /></View>}
       />
       <ScrollView style={{ flex: 1 }}>
         <Body
@@ -173,7 +175,7 @@ export default function OverviewTab() {
                   small
                   kind="ghost"
                   label="Start fresh"
-                  onPress={() => Alert.alert(
+                  onPress={() => dialog(
                     'Start using your own data?',
                     'This removes all test accounts, transactions, goals, debts, budgets, and schedules on this device.',
                     [

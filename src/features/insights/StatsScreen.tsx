@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { Alert, View, Text, ScrollView, Modal, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, Modal, TextInput, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   LayoutGrid, BookOpen, CalendarClock, CalendarDays, TrendingDown, ArrowLeftRight, Tag, CreditCard, Target, HandCoins, ChevronRight, GraduationCap, Trash2, Sheet, CloudUpload, CloudDownload,
 } from 'lucide-react-native';
 import { T } from '@/src/theme';
 import { useAppContext } from '@/src/context/AppContext';
-import { getSheetConfig, setSheetConfig, saveToSheet, loadFromSheet } from '@/src/data/sheetSync';
+import { getSheetConfig, setSheetConfig, loadFromSheet } from '@/src/data/sheetSync';
+import { dialog } from '@/src/utils/dialog';
+import { toast } from '@/src/utils/toast';
 import { Page, AppBar, Body, Section, Row } from '@/src/components/ui/Ledger';
 import CategoryManager from '@/src/features/insights/CategoryManager';
 
@@ -14,7 +16,7 @@ type Item = { label: string; subtitle: string; icon: React.ReactNode; href?: str
 
 export default function MoreScreen() {
   const router = useRouter();
-  const { loadDemoData, clearDemoData, isDemoData, restoreSnapshot } = useAppContext();
+  const { loadDemoData, clearDemoData, isDemoData, restoreSnapshot, sheetStatus, syncSheetNow, refreshSheetConfig } = useAppContext();
   const [catsOpen, setCatsOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
@@ -30,17 +32,19 @@ export default function MoreScreen() {
   const saveSetup = async () => {
     await setSheetConfig(sheetUrl, sheetSecret);
     setSetupOpen(false);
+    await refreshSheetConfig();
+    toast(sheetUrl.trim() && sheetSecret.trim() ? 'Excel online connected' : 'Excel online setup cleared', 'info');
   };
   const toSheet = async () => {
     setBusy(true);
     try {
-      const r = await saveToSheet();
-      Alert.alert('Saved to Excel online', `Updated ${r.tabs ?? ''} tabs in your Google Sheet.`);
+      await syncSheetNow();
+      toast('Saved to Excel online - your sheet is up to date');
     } catch (e) {
-      Alert.alert('Could not save', e instanceof Error ? e.message : 'Please try again.');
+      dialog('Could not save', e instanceof Error ? e.message : 'Please try again.');
     } finally { setBusy(false); }
   };
-  const fromSheet = () => Alert.alert(
+  const fromSheet = () => dialog(
     'Load from Excel online?',
     'This replaces the data on this device with the last data saved to the sheet.',
     [
@@ -51,10 +55,10 @@ export default function MoreScreen() {
           setBusy(true);
           try {
             const snap = await loadFromSheet();
-            if (!snap) Alert.alert('Nothing to load', 'Save to Excel online first.');
-            else { restoreSnapshot(snap); Alert.alert('Loaded', 'The sheet data is now active on this device.'); }
+            if (!snap) dialog('Nothing to load', 'Save to Excel online first.');
+            else restoreSnapshot(snap);
           } catch (e) {
-            Alert.alert('Could not load', e instanceof Error ? e.message : 'Please try again.');
+            dialog('Could not load', e instanceof Error ? e.message : 'Please try again.');
           } finally { setBusy(false); }
         },
       },
@@ -93,7 +97,7 @@ export default function MoreScreen() {
           label: 'Use test data',
           subtitle: 'Replace local data with clearly labeled sample records',
           icon: ic(GraduationCap, T.brand),
-          onPress: () => Alert.alert(
+          onPress: () => dialog(
             'Use test data?',
             'This replaces the current local data on this device with sample accounts, transactions, goals, debts, budgets, and schedules.',
             [
@@ -104,7 +108,10 @@ export default function MoreScreen() {
         },
         {
           label: busy ? 'Working...' : 'Save to Excel online',
-          subtitle: 'Update your Google Sheet: a tab per account, goals, debts, budgets',
+          subtitle: sheetStatus.state === 'off' ? 'Not connected - tap "Excel online setup" first'
+            : sheetStatus.state === 'error' ? `Failed: ${sheetStatus.message ?? ''}`
+            : sheetStatus.at ? `Connected - last saved ${new Date(sheetStatus.at).toLocaleString()} (auto-saves after changes)`
+            : 'Connected - saves automatically after changes',
           icon: ic(CloudUpload, '#0284c7'),
           onPress: toSheet,
         },
@@ -119,7 +126,7 @@ export default function MoreScreen() {
           label: 'Start using my own data',
           subtitle: 'Remove the test data and start with an empty app',
           icon: ic(Trash2, T.out),
-          onPress: () => Alert.alert(
+          onPress: () => dialog(
             'Start using your own data?',
             'This removes all test accounts, transactions, goals, debts, budgets, and schedules on this device.',
             [

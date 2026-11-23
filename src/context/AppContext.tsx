@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { BankAccount, Expense, SavingsGoal, BorrowRecord, BudgetCategory, Currency, Schedule, Budget } from '../types';
 import { dueRuns } from '../schedules';
 import { toDateStr, applySystemTheme } from '../theme';
 import { DEFAULT_CATEGORIES, migrateCategory } from '../categories';
 import { STORAGE_KEYS, storage } from '../data/storage';
-import type { Snapshot } from '../data/sheetSync';
+import { toast } from '../utils/toast';
+import { getSheetConfig, saveToSheet, type Snapshot } from '../data/sheetSync';
 
 const INITIAL_CATEGORIES: BudgetCategory[] = DEFAULT_CATEGORIES;
 
@@ -49,7 +50,14 @@ const DEMO_SCHEDULES: Schedule[] = [
   },
 ];
 
+export type SheetStatus = { state: 'off' | 'idle' | 'saving' | 'saved' | 'error'; at?: string; message?: string };
+const SHEET_LAST_KEY = 'saku_sheet_last';
+
 interface AppContextType {
+  /** Google Sheet (Excel online) connection: off = not set up, saved = last successful save time. */
+  sheetStatus: SheetStatus;
+  syncSheetNow: () => Promise<void>;
+  refreshSheetConfig: () => Promise<void>;
   exchangeRate: number;
   setExchangeRate: (rate: number) => void;
   rateUpdatedAt: string | null;
@@ -124,6 +132,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [sheetStatus, setSheetStatus] = useState<SheetStatus>({ state: 'off' });
   const [goals, setGoals] = useState<SavingsGoal[]>(INITIAL_GOALS);
   const [records, setRecords] = useState<BorrowRecord[]>(INITIAL_BORROW_RECORDS);
   const [categories, setCategories] = useState<BudgetCategory[]>(INITIAL_CATEGORIES);
@@ -180,6 +189,41 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setIsDemoData(snapshot[STORAGE_KEYS.demoMode] === 'true');
   };
 
+  const refreshSheetConfig = async () => {
+    const c = await getSheetConfig();
+    if (!c.url || !c.secret) { setSheetStatus({ state: 'off' }); return; }
+    const last = await storage.get(SHEET_LAST_KEY);
+    setSheetStatus(prev => (prev.state === 'saving' ? prev : last ? { state: 'saved', at: last } : { state: 'idle' }));
+  };
+
+  const syncSheetNow = async () => {
+    setSheetStatus(prev => ({ ...prev, state: 'saving' }));
+    try {
+      const r = await saveToSheet();
+      const at = r.savedAt ?? new Date().toISOString();
+      await storage.set(SHEET_LAST_KEY, at);
+      setSheetStatus({ state: 'saved', at });
+    } catch (e) {
+      setSheetStatus({ state: 'error', message: e instanceof Error ? e.message : 'Sync failed' });
+      throw e;
+    }
+  };
+
+  useEffect(() => { refreshSheetConfig(); }, []);
+
+  // Auto-save to the sheet a few seconds after any change (never on first load, never for test data).
+  const skipFirstSync = useRef(true);
+  useEffect(() => {
+    if (!loaded) return;
+    if (skipFirstSync.current) { skipFirstSync.current = false; return; }
+    if (isDemoData) return;
+    const t = setTimeout(async () => {
+      const c = await getSheetConfig();
+      if (c.url && c.secret) syncSheetNow().catch(e => toast(`Excel sync failed: ${e instanceof Error ? e.message : 'try again'}`, 'error'));
+    }, 4000);
+    return () => clearTimeout(t);
+  }, [accounts, expenses, goals, records, categories, schedules, budgets, exchangeRate, loaded]);
+
   const fetchLiveRate = async () => {
     if (rateLoading) return;
     setRateLoading(true);
@@ -192,9 +236,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const ts = new Date().toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit', hour12: true });
         setRateUpdatedAt(ts);
         await storage.set(STORAGE_KEYS.rateUpdatedAt, ts);
+        toast(`Live rate updated: 1 MYR = ${live} KRW`);
+      } else {
+        toast('Could not get the live rate - keeping the saved one', 'error');
       }
     } catch {
-      // network unavailable — keep cached rate
+      toast('No internet - keeping the saved exchange rate', 'error');
     } finally {
       setRateLoading(false);
     }
@@ -591,23 +638,64 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const totalInMyr = myrBal + (krwBal / 1000) * exchangeRate;
   const totalInKrw = krwBal + myrBal * (1000 / exchangeRate);
 
+  // Every user action below confirms itself with a short toast (see ToastHost).
+  const tell = <A extends unknown[], Rt>(fn: (...a: A) => Rt, msg: string | ((r: Rt, ...a: A) => string)) =>
+    (...a: A): Rt => {
+      const r = fn(...a);
+      toast(typeof msg === 'function' ? msg(r, ...a) : msg);
+      return r;
+    };
+  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+  const T_ = {
+    setExchangeRate: tell(setExchangeRate, 'Exchange rate updated'),
+    loadDemoData: tell(loadDemoData, 'Test data loaded'),
+    clearDemoData: tell(clearDemoData, 'Test data cleared - you can start fresh'),
+    handleAdjustBalance: tell(handleAdjustBalance, 'Balance updated'),
+    handleRecordTransfer: tell(handleRecordTransfer, 'Transfer recorded'),
+    handleTransfer: tell(handleTransfer, 'Transfer recorded'),
+    handleAddExpense: tell(handleAddExpense, (_r, e) => (e.type === 'income' ? 'Income added' : 'Expense added')),
+    handleDeleteExpense: tell(handleDeleteExpense, 'Entry deleted'),
+    handleAddCategory: tell(handleAddCategory, 'Category added'),
+    handleUpdateCategory: tell(handleUpdateCategory, 'Category updated'),
+    handleDeleteCategory: tell(handleDeleteCategory, 'Category deleted'),
+    handleAddAccount: tell(handleAddAccount, 'Account added'),
+    handleDeleteAccount: tell(handleDeleteAccount, 'Account deleted'),
+    handleUpdateAccount: tell(handleUpdateAccount, 'Account updated'),
+    handleUpdateAccountNo: tell(handleUpdateAccountNo, 'Account number saved'),
+    handleAddGoal: tell(handleAddGoal, 'Goal added'),
+    handleAddContribution: tell(handleAddContribution, 'Contribution added to goal'),
+    handleDeleteGoal: tell(handleDeleteGoal, 'Goal deleted'),
+    handleAddBorrowRecord: tell(handleAddBorrowRecord, 'Debt record added'),
+    handleRecordRepayment: tell(handleRecordRepayment, 'Repayment recorded'),
+    handleRecordCollection: tell(handleRecordCollection, 'Collection recorded'),
+    handleAddBudget: tell(handleAddBudget, 'Budget added'),
+    handleUpdateBudget: tell(handleUpdateBudget, 'Budget updated'),
+    handleDeleteBudget: tell(handleDeleteBudget, 'Budget deleted'),
+    handleAddSchedule: tell(handleAddSchedule, 'Scheduled entry added'),
+    handleUpdateSchedule: tell(handleUpdateSchedule, 'Scheduled entry updated'),
+    handleDeleteSchedule: tell(handleDeleteSchedule, 'Scheduled entry deleted'),
+    handleImportTransactions: tell(handleImportTransactions, n => (n ? `Imported ${plural(n, 'new entry', 'new entries')}` : 'Nothing new to import')),
+    restoreSnapshot: tell(restoreSnapshot, 'Data loaded from the sheet'),
+  };
+
   return (
     <AppContext.Provider value={{
-      exchangeRate, setExchangeRate,
+      exchangeRate, setExchangeRate: T_.setExchangeRate,
       rateUpdatedAt, rateLoading, fetchLiveRate,
       accounts, expenses, goals, records, categories,
       quickAmountToFill, quickCurrencyToFill,
       setQuickAmountToFill, setQuickCurrencyToFill,
       totalInMyr, totalInKrw,
-      handleAdjustBalance, handleRecordTransfer,
-      handleAddExpense, handleDeleteExpense,
-      handleAddCategory, handleUpdateCategory, handleDeleteCategory, handleRemoveImported, handleAddAccount, handleDeleteAccount,
-      handleAddGoal, handleAddContribution, handleDeleteGoal,
-      handleAddBorrowRecord, handleRecordRepayment, handleRecordCollection,
-      handleUpdateAccountNo, handleUpdateAccount, handleUseCalculatedAmount,
-      handleImportTransactions, handleTransfer, loadDemoData, clearDemoData, isDemoData, restoreSnapshot,
-      budgets, handleAddBudget, handleUpdateBudget, handleDeleteBudget,
-      schedules, handleAddSchedule, handleUpdateSchedule, handleDeleteSchedule,
+      handleAdjustBalance: T_.handleAdjustBalance, handleRecordTransfer: T_.handleRecordTransfer,
+      handleAddExpense: T_.handleAddExpense, handleDeleteExpense: T_.handleDeleteExpense,
+      handleAddCategory: T_.handleAddCategory, handleUpdateCategory: T_.handleUpdateCategory, handleDeleteCategory: T_.handleDeleteCategory, handleRemoveImported,
+      handleAddAccount: T_.handleAddAccount, handleDeleteAccount: T_.handleDeleteAccount,
+      handleAddGoal: T_.handleAddGoal, handleAddContribution: T_.handleAddContribution, handleDeleteGoal: T_.handleDeleteGoal,
+      handleAddBorrowRecord: T_.handleAddBorrowRecord, handleRecordRepayment: T_.handleRecordRepayment, handleRecordCollection: T_.handleRecordCollection,
+      handleUpdateAccountNo: T_.handleUpdateAccountNo, handleUpdateAccount: T_.handleUpdateAccount, handleUseCalculatedAmount,
+      handleImportTransactions: T_.handleImportTransactions, handleTransfer: T_.handleTransfer, loadDemoData: T_.loadDemoData, clearDemoData: T_.clearDemoData, isDemoData, restoreSnapshot: T_.restoreSnapshot, sheetStatus, syncSheetNow, refreshSheetConfig,
+      budgets, handleAddBudget: T_.handleAddBudget, handleUpdateBudget: T_.handleUpdateBudget, handleDeleteBudget: T_.handleDeleteBudget,
+      schedules, handleAddSchedule: T_.handleAddSchedule, handleUpdateSchedule: T_.handleUpdateSchedule, handleDeleteSchedule: T_.handleDeleteSchedule,
       system, setSystem, systemAccounts,
       scopeAccountId: scopeId, setScopeAccountId, scopeIds, scopeName,
     }}>
