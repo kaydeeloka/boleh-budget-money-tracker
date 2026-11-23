@@ -2,16 +2,19 @@
   "short_name": "Saku",
   "name": "Saku — Track Every Won & Ringgit.",
   "description": "An elegant personal finance app in warm natural tones for Malaysian students in Korea.",
+  "id": "/",
   "icons": [
     {
-      "src": "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=192&h=192&fit=crop&q=80",
-      "type": "image/jpeg",
-      "sizes": "192x192"
+      "src": "/icons/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
-      "src": "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=512&h=512&fit=crop&q=80",
-      "type": "image/jpeg",
-      "sizes": "512x512"
+      "src": "/icons/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
   "start_url": "/",

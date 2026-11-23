@@ -98,6 +98,8 @@ interface AppContextType {
   handleUseCalculatedAmount: (amount: number, currency: Currency) => void;
   handleImportTransactions: (accountId: string, rows: Omit<Expense, 'id' | 'accountId'>[], newBalance?: number) => number;
   loadDemoData: () => void;
+  clearDemoData: () => void;
+  isDemoData: boolean;
   /** Currency "system" the whole app is showing (KRW or MYR). */
   system: Currency;
   setSystem: (c: Currency) => void;
@@ -129,6 +131,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [rateLoading, setRateLoading] = useState(false);
   const [system, setSystemState] = useState<Currency>('KRW');
   const [scopeAccountId, setScopeAccountIdState] = useState<string>('all');
+  const [isDemoData, setIsDemoData] = useState(true);
   applySystemTheme(system); // KRW = green, MYR = dark pastel purple; children read T.* during this same render
 
   const loadDemoData = () => {
@@ -142,6 +145,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSchedules(DEMO_SCHEDULES.map(schedule => ({ ...schedule })));
     setSystemState('KRW');
     setScopeAccountIdState('all');
+    setIsDemoData(true);
+  };
+
+  const clearDemoData = () => {
+    setAccounts([]);
+    setExpenses([]);
+    setGoals([]);
+    setRecords([]);
+    setBudgets([]);
+    setSchedules([]);
+    setCategories(INITIAL_CATEGORIES.map(category => ({ ...category, subcategories: category.subcategories ? [...category.subcategories] : undefined })));
+    setExchangeRateState(3.32);
+    setSystemState('KRW');
+    setScopeAccountIdState('all');
+    setIsDemoData(false);
   };
 
   const fetchLiveRate = async () => {
@@ -169,7 +187,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const loadData = async () => {
       try {
         const CAT_VERSION = 'v4'; // v4: new category set with subcategories
-        const [rate, savedAccounts, savedExpenses, savedGoals, savedRecords, savedCategories, catVersion, savedUpdatedAt] = await Promise.all([
+        const [rate, savedAccounts, savedExpenses, savedGoals, savedRecords, savedCategories, catVersion, savedUpdatedAt, savedDemoMode] = await Promise.all([
           storage.get(STORAGE_KEYS.rate),
           storage.get(STORAGE_KEYS.accounts),
           storage.get(STORAGE_KEYS.expenses),
@@ -178,7 +196,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           storage.get(STORAGE_KEYS.categories),
           storage.get(STORAGE_KEYS.categoryVersion),
           storage.get(STORAGE_KEYS.rateUpdatedAt),
+          storage.get(STORAGE_KEYS.demoMode),
         ]);
+        if (savedDemoMode !== null) setIsDemoData(savedDemoMode === 'true');
+        else if (savedAccounts) setIsDemoData(false);
         if (rate) setExchangeRateState(parseFloat(rate));
         if (savedUpdatedAt) setRateUpdatedAt(savedUpdatedAt);
         if (savedAccounts) setAccounts(JSON.parse(savedAccounts));
@@ -223,6 +244,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { storage.set(STORAGE_KEYS.goals, JSON.stringify(goals)); }, [goals]);
   useEffect(() => { storage.set(STORAGE_KEYS.records, JSON.stringify(records)); }, [records]);
   useEffect(() => { storage.set(STORAGE_KEYS.categories, JSON.stringify(categories)); }, [categories]);
+  useEffect(() => { if (loaded) storage.set(STORAGE_KEYS.demoMode, isDemoData.toString()); }, [isDemoData, loaded]);
   // Only after loading, so the empty initial list can't overwrite saved schedules
   useEffect(() => { if (loaded) storage.set(STORAGE_KEYS.schedules, JSON.stringify(schedules)); }, [schedules, loaded]);
   useEffect(() => { if (loaded) storage.set(STORAGE_KEYS.budgets, JSON.stringify(budgets)); }, [budgets, loaded]);
@@ -565,7 +587,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       handleAddGoal, handleAddContribution, handleDeleteGoal,
       handleAddBorrowRecord, handleRecordRepayment, handleRecordCollection,
       handleUpdateAccountNo, handleUpdateAccount, handleUseCalculatedAmount,
-      handleImportTransactions, handleTransfer, loadDemoData,
+      handleImportTransactions, handleTransfer, loadDemoData, clearDemoData, isDemoData,
       budgets, handleAddBudget, handleUpdateBudget, handleDeleteBudget,
       schedules, handleAddSchedule, handleUpdateSchedule, handleDeleteSchedule,
       system, setSystem, systemAccounts,

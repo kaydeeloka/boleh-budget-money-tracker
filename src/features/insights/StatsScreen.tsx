@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Alert, View, Text, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
-  LayoutGrid, BookOpen, CalendarClock, CalendarDays, TrendingDown, ArrowLeftRight, Tag, CreditCard, Target, HandCoins, ChevronRight, GraduationCap,
+  LayoutGrid, BookOpen, CalendarClock, CalendarDays, TrendingDown, ArrowLeftRight, Tag, CreditCard, Target, HandCoins, ChevronRight, GraduationCap, Trash2,
 } from 'lucide-react-native';
 import { T } from '@/src/theme';
 import { useAppContext } from '@/src/context/AppContext';
@@ -13,7 +13,7 @@ type Item = { label: string; subtitle: string; icon: React.ReactNode; href?: str
 
 export default function MoreScreen() {
   const router = useRouter();
-  const { loadDemoData } = useAppContext();
+  const { loadDemoData, clearDemoData, isDemoData } = useAppContext();
   const [catsOpen, setCatsOpen] = useState(false);
   const ic = (Icon: React.ComponentType<any>, color: string) => (
     <View style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: T.line2, alignItems: 'center', justifyContent: 'center' }}>
@@ -45,18 +45,31 @@ export default function MoreScreen() {
         { label: 'Exchange Rate', subtitle: 'KRW ↔ MYR converter on the Overview', icon: ic(ArrowLeftRight, '#0284c7'), href: '/' },
         { label: 'Categories', subtitle: 'Edit categories & subcategories', icon: ic(Tag, '#0d9488'), onPress: () => setCatsOpen(true) },
         {
-          label: 'Load demo data',
-          subtitle: 'Replace local data with a guided sample account',
+          label: 'Use test data',
+          subtitle: 'Replace local data with clearly labeled sample records',
           icon: ic(GraduationCap, T.brand),
           onPress: () => Alert.alert(
-            'Load demo data?',
+            'Use test data?',
             'This replaces the current local data on this device with sample accounts, transactions, goals, debts, budgets, and schedules.',
             [
               { text: 'Cancel', style: 'cancel' },
-              { text: 'Load demo data', style: 'destructive', onPress: loadDemoData },
+              { text: 'Use test data', style: 'destructive', onPress: loadDemoData },
             ],
           ),
         },
+        ...(isDemoData ? [{
+          label: 'Start using my own data',
+          subtitle: 'Remove the test data and start with an empty app',
+          icon: ic(Trash2, T.out),
+          onPress: () => Alert.alert(
+            'Start using your own data?',
+            'This removes all test accounts, transactions, goals, debts, budgets, and schedules on this device.',
+            [
+              { text: 'Cancel', style: 'cancel' as const },
+              { text: 'Clear test data', style: 'destructive' as const, onPress: clearDemoData },
+            ],
+          ),
+        }] : []),
       ],
     },
   ];

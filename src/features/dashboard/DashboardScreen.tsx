@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import AddFab from '@/src/features/transactions/AddFab';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { Alert, View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LayoutDashboard, ArrowLeftRight, ChevronRight } from 'lucide-react-native';
 import { useAppContext } from '@/src/context/AppContext';
@@ -23,7 +23,7 @@ function compact(n: number, cur: 'KRW' | 'MYR') {
 }
 
 export default function OverviewTab() {
-  const { exchangeRate, expenses, system, systemAccounts, scopeIds, scopeName, handleUseCalculatedAmount, setQuickAmountToFill, budgets: allBudgets, categories } = useAppContext();
+  const { exchangeRate, expenses, system, systemAccounts, scopeIds, scopeName, handleUseCalculatedAmount, setQuickAmountToFill, budgets: allBudgets, categories, isDemoData, clearDemoData } = useAppContext();
   const router = useRouter();
   const [transferOpen, setTransferOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -164,6 +164,31 @@ export default function OverviewTab() {
             />
           }
         >
+          {isDemoData && (
+            <Section
+              title="Test data"
+              subtitle="These sample records are only for trying Saku. They are stored on this device."
+              right={
+                <Btn
+                  small
+                  kind="ghost"
+                  label="Start fresh"
+                  onPress={() => Alert.alert(
+                    'Start using your own data?',
+                    'This removes all test accounts, transactions, goals, debts, budgets, and schedules on this device.',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Clear test data', style: 'destructive', onPress: clearDemoData },
+                    ],
+                  )}
+                />
+              }
+            >
+              <Text style={{ color: T.ink2, fontSize: 13, lineHeight: 19, paddingHorizontal: 16, paddingVertical: 12 }}>
+                Add your own account and transactions after clearing the sample data.
+              </Text>
+            </Section>
+          )}
           {summary}
           {budgetsCard}
           {accountsCard}

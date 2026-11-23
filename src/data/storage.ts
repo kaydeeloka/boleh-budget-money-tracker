@@ -13,6 +13,7 @@ export const STORAGE_KEYS = {
   scope: 'saku_scope',
   schedules: 'saku_schedules',
   budgets: 'saku_budgets',
+  demoMode: 'saku_demo_mode',
 } as const;
 
 export const storage = {
