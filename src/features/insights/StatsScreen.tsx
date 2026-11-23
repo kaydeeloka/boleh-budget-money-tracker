@@ -1,20 +1,81 @@
 import React, { useState } from 'react';
 import { Alert, View, Text, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
 import {
-  LayoutGrid, BookOpen, CalendarClock, CalendarDays, TrendingDown, ArrowLeftRight, Tag, CreditCard, Target, HandCoins, ChevronRight, GraduationCap, Trash2,
+  LayoutGrid, BookOpen, CalendarClock, CalendarDays, TrendingDown, ArrowLeftRight, Tag, CreditCard, Target, HandCoins, ChevronRight, GraduationCap, Trash2, CloudUpload, CloudDownload,
 } from 'lucide-react-native';
 import { T } from '@/src/theme';
 import { useAppContext } from '@/src/context/AppContext';
+import { downloadSnapshot, uploadSnapshot } from '@/src/data/googleDrive';
 import { Page, AppBar, Body, Section, Row } from '@/src/components/ui/Ledger';
 import CategoryManager from '@/src/features/insights/CategoryManager';
+
+WebBrowser.maybeCompleteAuthSession();
 
 type Item = { label: string; subtitle: string; icon: React.ReactNode; href?: string; onPress?: () => void };
 
 export default function MoreScreen() {
   const router = useRouter();
-  const { loadDemoData, clearDemoData, isDemoData } = useAppContext();
+  const { loadDemoData, clearDemoData, isDemoData, restoreDriveSnapshot } = useAppContext();
   const [catsOpen, setCatsOpen] = useState(false);
+  const [driveBusy, setDriveBusy] = useState(false);
+  const [request, , promptAsync] = Google.useAuthRequest({
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    scopes: ['https://www.googleapis.com/auth/drive.file'],
+  });
+
+  const getDriveToken = async () => {
+    if (!request) throw new Error('Google Drive is not configured. Add the Expo Google client IDs first.');
+    const result = await promptAsync();
+    if (result.type !== 'success' || !result.authentication?.accessToken) throw new Error('Google sign-in was cancelled or did not return a Drive token.');
+    return result.authentication.accessToken;
+  };
+
+  const saveToDrive = async () => {
+    setDriveBusy(true);
+    try {
+      await uploadSnapshot(await getDriveToken());
+      Alert.alert('Saved to Google Drive', 'Your data is saved as saku-data.json in My Drive.');
+    } catch (error) {
+      Alert.alert('Could not save to Google Drive', error instanceof Error ? error.message : 'Please try again.');
+    } finally {
+      setDriveBusy(false);
+    }
+  };
+
+  const loadFromDrive = async () => {
+    Alert.alert(
+      'Load from Google Drive?',
+      'This replaces the data currently stored on this device with the Drive backup.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Load backup',
+          style: 'destructive',
+          onPress: async () => {
+            setDriveBusy(true);
+            try {
+              const snapshot = await downloadSnapshot(await getDriveToken());
+              if (!snapshot) {
+                Alert.alert('No backup found', 'Save your local data to Google Drive first.');
+              } else {
+                restoreDriveSnapshot(snapshot);
+                Alert.alert('Loaded from Google Drive', 'The Drive backup is now active on this device.');
+              }
+            } catch (error) {
+              Alert.alert('Could not load from Google Drive', error instanceof Error ? error.message : 'Please try again.');
+            } finally {
+              setDriveBusy(false);
+            }
+          },
+        },
+      ],
+    );
+  };
   const ic = (Icon: React.ComponentType<any>, color: string) => (
     <View style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: T.line2, alignItems: 'center', justifyContent: 'center' }}>
       <Icon size={18} color={color} />
@@ -56,6 +117,18 @@ export default function MoreScreen() {
               { text: 'Use test data', style: 'destructive', onPress: loadDemoData },
             ],
           ),
+        },
+        {
+          label: driveBusy ? 'Syncing…' : 'Save to Google Drive',
+          subtitle: 'Save a visible saku-data.json backup in My Drive',
+          icon: ic(CloudUpload, '#0284c7'),
+          onPress: saveToDrive,
+        },
+        {
+          label: driveBusy ? 'Syncing…' : 'Load from Google Drive',
+          subtitle: 'Replace this device’s data with your Drive backup',
+          icon: ic(CloudDownload, '#0284c7'),
+          onPress: loadFromDrive,
         },
         ...(isDemoData ? [{
           label: 'Start using my own data',

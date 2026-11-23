@@ -81,3 +81,11 @@ npx vercel --prod
 
 Alternatively, push the branch configured as the Vercel production branch
 (normally `main`). Vercel will run `npm run build:web` and publish `dist/`.
+
+### Google Drive backup
+
+The More screen can save or restore a visible `saku-data.json` file in the
+signed-in user's Google Drive. Configure the three
+`EXPO_PUBLIC_GOOGLE_*_CLIENT_ID` values from Google Cloud OAuth clients before
+using these actions. Saving and loading are manual; loading a backup replaces
+the current device data after confirmation.

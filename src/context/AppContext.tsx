@@ -4,6 +4,7 @@ import { dueRuns } from '../schedules';
 import { toDateStr, applySystemTheme } from '../theme';
 import { DEFAULT_CATEGORIES, migrateCategory } from '../categories';
 import { STORAGE_KEYS, storage } from '../data/storage';
+import type { DriveSnapshot } from '../data/googleDrive';
 
 const INITIAL_CATEGORIES: BudgetCategory[] = DEFAULT_CATEGORIES;
 
@@ -100,6 +101,7 @@ interface AppContextType {
   loadDemoData: () => void;
   clearDemoData: () => void;
   isDemoData: boolean;
+  restoreDriveSnapshot: (snapshot: DriveSnapshot) => void;
   /** Currency "system" the whole app is showing (KRW or MYR). */
   system: Currency;
   setSystem: (c: Currency) => void;
@@ -160,6 +162,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSystemState('KRW');
     setScopeAccountIdState('all');
     setIsDemoData(false);
+  };
+
+  const restoreDriveSnapshot = (snapshot: DriveSnapshot) => {
+    const read = <T,>(key: string, fallback: T): T => {
+      if (!snapshot[key]) return fallback;
+      return JSON.parse(snapshot[key]) as T;
+    };
+    setExchangeRateState(Number(snapshot[STORAGE_KEYS.rate]) || 3.32);
+    setAccounts(read(STORAGE_KEYS.accounts, []));
+    setExpenses(read(STORAGE_KEYS.expenses, []));
+    setGoals(read(STORAGE_KEYS.goals, []));
+    setRecords(read(STORAGE_KEYS.records, []));
+    setCategories(read(STORAGE_KEYS.categories, INITIAL_CATEGORIES));
+    setSchedules(read(STORAGE_KEYS.schedules, []));
+    setBudgets(read(STORAGE_KEYS.budgets, []));
+    setIsDemoData(snapshot[STORAGE_KEYS.demoMode] === 'true');
   };
 
   const fetchLiveRate = async () => {
@@ -587,7 +605,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       handleAddGoal, handleAddContribution, handleDeleteGoal,
       handleAddBorrowRecord, handleRecordRepayment, handleRecordCollection,
       handleUpdateAccountNo, handleUpdateAccount, handleUseCalculatedAmount,
-      handleImportTransactions, handleTransfer, loadDemoData, clearDemoData, isDemoData,
+      handleImportTransactions, handleTransfer, loadDemoData, clearDemoData, isDemoData, restoreDriveSnapshot,
       budgets, handleAddBudget, handleUpdateBudget, handleDeleteBudget,
       schedules, handleAddSchedule, handleUpdateSchedule, handleDeleteSchedule,
       system, setSystem, systemAccounts,
